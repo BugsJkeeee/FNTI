@@ -155,11 +155,11 @@ export default function DashboardBoard({
 
   return (
     <div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="flex gap-3 overflow-x-auto pb-2">
         {employees.map((employee) => {
           const empTasks = tasksByEmployee.get(employee.id) ?? []
           return (
-            <div key={employee.id} className="rounded-xl border border-line bg-white p-2.5">
+            <div key={employee.id} className="w-64 shrink-0 rounded-xl border border-line bg-white p-2.5">
               <div className="flex items-center justify-between border-b border-line pb-1.5">
                 <h2 className="font-display text-xs font-semibold text-ink">{employee.name}</h2>
                 <span className="font-mono text-[10px] text-ink-soft">{empTasks.length} всего</span>

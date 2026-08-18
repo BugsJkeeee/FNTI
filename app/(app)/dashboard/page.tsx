@@ -14,7 +14,7 @@ export default async function DashboardPage() {
     .select('*, author:employees!tasks_author_id_fkey(id, name, specialization), assignee:employees!tasks_assignee_id_fkey(id, name, specialization)')
     .order('created_at', { ascending: false })
 
-  const { data: employees } = await supabase.from('employees').select('*').order('name')
+  const { data: employees } = await supabase.from('employees').select('*').order('created_at', { ascending: false })
 
   const tasksWithComments = await attachCommentInfo(supabase, (tasks as Task[]) ?? [], employee!.id)
   const tasksWithTags = await attachTagInfo(supabase, tasksWithComments)
