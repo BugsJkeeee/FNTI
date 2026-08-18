@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { priorityLabels, statusLabels } from '@/components/Badges'
@@ -36,10 +36,12 @@ export default function AiCommandBox() {
   const [choiceTaskId, setChoiceTaskId] = useState('')
   const [choiceText, setChoiceText] = useState('')
   const [sendingChoice, setSendingChoice] = useState(false)
+  const submittingRef = useRef(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!text.trim()) return
+    if (!text.trim() || submittingRef.current) return
+    submittingRef.current = true
     setLoading(true)
     setError(null)
     setResult(null)
@@ -72,7 +74,14 @@ export default function AiCommandBox() {
       setError('Проблема с сетью. Попробуй ещё раз.')
     } finally {
       setLoading(false)
+      submittingRef.current = false
     }
+  }
+
+  function handleTextareaKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key !== 'Enter' || e.shiftKey) return
+    e.preventDefault()
+    e.currentTarget.form?.requestSubmit()
   }
 
   function cancelChoice() {
@@ -116,6 +125,7 @@ export default function AiCommandBox() {
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
+          onKeyDown={handleTextareaKeyDown}
           rows={2}
           placeholder="Напиши в задаче про … , что … / перенеси задачу про … на … / поставь тег … на задачу про …"
           className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-teal focus:ring-2 focus:ring-teal/20"

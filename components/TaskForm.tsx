@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { AiSuggestion, Employee, Priority, Tag } from '@/types'
 import { priorityLabels } from '@/components/Badges'
 import Spinner from '@/components/Spinner'
@@ -33,6 +33,7 @@ export default function TaskForm({
   const [manualError, setManualError] = useState<string | null>(null)
   const [availableTags, setAvailableTags] = useState<Tag[]>([])
   const [manualTagIds, setManualTagIds] = useState<string[]>([])
+  const submittingRef = useRef(false)
 
   useEffect(() => {
     fetch('/api/tags')
@@ -57,7 +58,8 @@ export default function TaskForm({
   }
 
   async function handleSubmit() {
-    if (!text.trim()) return
+    if (!text.trim() || submittingRef.current) return
+    submittingRef.current = true
     setLoading(true)
     setError(null)
     setCreated(null)
@@ -112,7 +114,14 @@ export default function TaskForm({
       openManual(text)
     } finally {
       setLoading(false)
+      submittingRef.current = false
     }
+  }
+
+  function handleTextareaKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key !== 'Enter' || e.shiftKey) return
+    e.preventDefault()
+    handleSubmit()
   }
 
   function cancelManual() {
@@ -174,6 +183,7 @@ export default function TaskForm({
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
+          onKeyDown={handleTextareaKeyDown}
           rows={2}
           placeholder="Например: Пете обновить прайс лист и отправить клиенту до среды, срочно, там ошибка в ценах"
           className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-teal focus:ring-2 focus:ring-teal/20"
