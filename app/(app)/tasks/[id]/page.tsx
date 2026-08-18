@@ -6,8 +6,17 @@ import TaskDetail from '@/components/TaskDetail'
 import CommentSection from '@/components/CommentSection'
 import type { Comment, Employee, Tag, Task } from '@/types'
 
-export default async function TaskPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function TaskPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ from?: string }>
+}) {
   const { id } = await params
+  const { from } = await searchParams
+  const backHref = from === 'calendar' ? '/calendar' : '/board'
+  const backLabel = from === 'calendar' ? '← Назад к календарю' : '← Назад к доске'
   const employee = await getCurrentEmployee()
   const supabase = await createClient()
 
@@ -38,7 +47,7 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div className="space-y-6">
-      <Link href="/board" className="text-sm text-ink-soft hover:text-ink">← Назад к доске</Link>
+      <Link href={backHref} className="text-sm text-ink-soft hover:text-ink">{backLabel}</Link>
 
       <TaskDetail
         task={task as Task}

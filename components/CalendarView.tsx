@@ -24,7 +24,7 @@ function DayTaskItem({ task }: { task: Task }) {
   const status = getDisplayStatus(task)
   return (
     <Link
-      href={`/tasks/${task.id}`}
+      href={`/tasks/${task.id}?from=calendar`}
       className={`relative block rounded-lg border-2 bg-paper p-3 text-base transition hover:opacity-80 ${priorityBorder[task.priority]}`}
     >
       {task.has_unread_comment && (
@@ -202,7 +202,7 @@ export default function CalendarView({
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((task) => (
-              <TaskCard key={task.id} task={task} currentEmployeeId={currentEmployeeId} highlightQuery={query} />
+              <TaskCard key={task.id} task={task} currentEmployeeId={currentEmployeeId} highlightQuery={query} from="calendar" />
             ))}
           </div>
         )}

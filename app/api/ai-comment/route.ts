@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentEmployee } from '@/lib/current-employee'
 import { canSetPrivateTag, isPrivateTagName } from '@/lib/tags'
+import { buildDateContext, getBusinessToday } from '@/lib/date-context'
 
 export async function POST(req: NextRequest) {
   const employee = await getCurrentEmployee()
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
   const [{ data: tasks }, { data: allTags }] = await Promise.all([
     supabase
       .from('tasks')
-      .select('id, text, author_id, assignee_id, assignee:employees!tasks_assignee_id_fkey(name)')
+      .select('id, text, description, author_id, assignee_id, assignee:employees!tasks_assignee_id_fkey(name)')
       .order('created_at', { ascending: false })
       .limit(50),
     supabase.from('tags').select('id, name'),
@@ -25,6 +26,7 @@ export async function POST(req: NextRequest) {
   const taskList = (tasks ?? []) as unknown as {
     id: string
     text: string
+    description: string | null
     author_id: string | null
     assignee_id: string | null
     assignee: { name: string } | null
@@ -38,13 +40,15 @@ export async function POST(req: NextRequest) {
 
   const tagContext = tagList.map((t) => `- ${t.name}`).join('\n')
 
-  const today = new Date()
+  const today = getBusinessToday()
   const todayStr = today.toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })
-  const todayISO = today.toISOString().slice(0, 10)
+  const dateContext = buildDateContext(today)
 
   const prompt = `Ты — ассистент в системе управления задачами команды. Автор (${employee.name}) даёт команду в свободной форме.
 
-Сегодня: ${todayStr}, т.е. ${todayISO}.
+Сегодня: ${todayStr}.
+
+${dateContext}
 
 Список существующих задач:
 ${taskContext || '(задач нет)'}
@@ -55,20 +59,22 @@ ${tagContext || '(тегов нет)'}
 Команда автора: "${text}"
 
 Задачи:
-1. Определи намерение (intent): "comment" — добавить комментарий к задаче; "deadline" — перенести/изменить срок задачи; "priority" — изменить приоритет/важность задачи; "status" — изменить статус задачи; "add_tag" — поставить тег на задачу; "remove_tag" — убрать тег с задачи; "unclear" — не похоже ни на одно из этого.
+1. Определи намерение (intent): "comment" — добавить комментарий к задаче; "description" — дополнить или изменить описание задачи (поле в самой задаче, а не комментарий); "deadline" — перенести/изменить срок задачи; "priority" — изменить приоритет/важность задачи; "status" — изменить статус задачи; "add_tag" — поставить тег на задачу; "remove_tag" — убрать тег с задачи; "unclear" — не похоже ни на одно из этого.
 2. Определи, к какой именно задаче из списка это относится — по смыслу, а не только по точному совпадению слов.
 3. Если можешь уверенно определить ровно одну задачу — верни её id. Если нет (нет подходящей, либо несколько одинаково подходящих) — верни task_id: null и коротко объясни в reason.
 4. Если intent = "comment": извлеки текст комментария — то, что нужно написать, без служебных фраз вроде "напиши комментарий в задаче про X, что", только суть сообщения, от первого лица.
-5. Если intent = "deadline": переведи новый срок в дату YYYY-MM-DD, отталкиваясь от сегодняшней даты.
-6. Если intent = "priority": сопоставь с одним из ТОЧНО трёх значений: "срочно", "обычный", "низкий".
-7. Если intent = "status": сопоставь с одним из ТОЧНО трёх значений: "новая", "в работе", "выполнена". Примеры: "готово", "сделано", "закрой" → выполнена; "взял в работу", "начал делать" → в работе; "верни в новые", "ещё не начинал" → новая.
-8. Если intent = "add_tag" или "remove_tag": сопоставь упомянутый тег с одним из существующих тегов из списка выше (без учёта регистра), верни его название дословно как в списке в поле tag_name. Если подходящего тега в списке нет — tag_name: null. Никогда не придумывай новый тег для этого намерения.
+5. Если intent = "description": извлеки текст, который нужно добавить в описание задачи — без служебных фраз вроде "добавь в описание задачи про X, что", только суть, связным текстом без ошибок.
+6. Если intent = "deadline": переведи новый срок в дату YYYY-MM-DD. Срок может быть сформулирован сложно и не буквально: "через две недели", "в последнюю субботу сентября", "в следующий четверг", "к концу месяца" и т.п. — используй таблицы дат-ориентиров выше, чтобы не ошибиться в вычислении.
+7. Если intent = "priority": сопоставь с одним из ТОЧНО трёх значений: "срочно", "обычный", "низкий".
+8. Если intent = "status": сопоставь с одним из ТОЧНО трёх значений: "новая", "в работе", "выполнена". Примеры: "готово", "сделано", "закрой" → выполнена; "взял в работу", "начал делать" → в работе; "верни в новые", "ещё не начинал" → новая.
+9. Если intent = "add_tag" или "remove_tag": сопоставь упомянутый тег с одним из существующих тегов из списка выше (без учёта регистра), верни его название дословно как в списке в поле tag_name. Если подходящего тега в списке нет — tag_name: null. Никогда не придумывай новый тег для этого намерения.
 
 Верни ТОЛЬКО валидный JSON без markdown-разметки, строго в таком формате:
 {
-  "intent": "comment" | "deadline" | "priority" | "status" | "add_tag" | "remove_tag" | "unclear",
+  "intent": "comment" | "description" | "deadline" | "priority" | "status" | "add_tag" | "remove_tag" | "unclear",
   "task_id": "id задачи из списка выше или null",
   "comment_text": "текст комментария или null",
+  "description_text": "текст для добавления в описание или null",
   "new_deadline": "YYYY-MM-DD или null",
   "new_priority": "срочно" | "обычный" | "низкий" | null,
   "new_status": "новая" | "в работе" | "выполнена" | null,
@@ -164,6 +170,42 @@ ${tagContext || '(тегов нет)'}
         task_id: parsed.task_id,
         task_text: matchedTask.text,
         comment_text: comment.text,
+      })
+    }
+
+    if (parsed.intent === 'description') {
+      const isAuthor = matchedTask.author_id === employee.id
+      const isAssignee = matchedTask.assignee_id === employee.id
+      if (!isAuthor && !isAssignee) {
+        return NextResponse.json(
+          { error: `Нет прав менять описание задачи «${matchedTask.text}» — редактировать может только автор или исполнитель.` },
+          { status: 403 }
+        )
+      }
+
+      if (!parsed.description_text) {
+        return NextResponse.json({ error: 'Не понял, что добавить в описание.' }, { status: 422 })
+      }
+
+      const newDescription = matchedTask.description
+        ? `${matchedTask.description}\n\n${parsed.description_text}`
+        : parsed.description_text
+
+      const { error } = await supabase.from('tasks').update({ description: newDescription }).eq('id', parsed.task_id)
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+      await supabase.from('task_history').insert({
+        task_id: parsed.task_id,
+        changed_by: employee.id,
+        change_description: 'Изменено через ИИ-команду: описание обновлено',
+      })
+
+      return NextResponse.json({
+        type: 'task_updated',
+        task_id: parsed.task_id,
+        task_text: matchedTask.text,
+        field: 'description',
+        new_value: parsed.description_text,
       })
     }
 

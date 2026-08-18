@@ -14,10 +14,12 @@ export default function TaskCard({
   task,
   currentEmployeeId,
   highlightQuery,
+  from,
 }: {
   task: Task
   currentEmployeeId: string
   highlightQuery?: string
+  from?: string
 }) {
   const displayStatus = getDisplayStatus(task)
   const role = getTaskRole(task, currentEmployeeId)
@@ -29,7 +31,7 @@ export default function TaskCard({
 
   return (
     <Link
-      href={`/tasks/${task.id}`}
+      href={from ? `/tasks/${task.id}?from=${from}` : `/tasks/${task.id}`}
       className={`relative block rounded-xl border-2 p-4 transition hover:opacity-80 ${
         isDone ? 'border-line bg-line/40' : `bg-white ${priorityBorder[task.priority]}`
       }`}

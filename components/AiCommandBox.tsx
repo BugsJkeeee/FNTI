@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { priorityLabels, statusLabels } from '@/components/Badges'
 import Spinner from '@/components/Spinner'
 
-type TaskUpdatedField = 'deadline' | 'priority' | 'status' | 'tag_added' | 'tag_removed'
+type TaskUpdatedField = 'deadline' | 'priority' | 'status' | 'tag_added' | 'tag_removed' | 'description'
 
 type CommentPosted = { type: 'comment_posted'; task_id: string; task_text: string; comment_text: string }
 type TaskUpdated = { type: 'task_updated'; task_id: string; task_text: string; field: TaskUpdatedField; new_value: string }
@@ -22,7 +22,8 @@ function fieldLabel(field: TaskUpdatedField, value: string) {
   if (field === 'priority') return `приоритет → ${priorityLabels[value as keyof typeof priorityLabels] ?? value}`
   if (field === 'status') return `статус → ${statusLabels[value as keyof typeof statusLabels] ?? value}`
   if (field === 'tag_added') return `добавлен тег «${value}»`
-  return `убран тег «${value}»`
+  if (field === 'tag_removed') return `убран тег «${value}»`
+  return `описание дополнено: «${value}»`
 }
 
 export default function AiCommandBox() {
@@ -108,7 +109,7 @@ export default function AiCommandBox() {
     <div className="rounded-2xl border border-line bg-white p-5 shadow-lg">
       <h2 className="font-display text-base font-semibold text-ink">Команда ИИ</h2>
       <p className="mt-0.5 text-sm text-ink-soft">
-        Умеет добавлять комментарий, менять срок, приоритет или статус, ставить/убирать тег. Например: «отметь задачу про МЭИ выполненной» или «поставь тег Финансы на задачу про 1С».
+        Умеет добавлять комментарий, дополнять описание, менять срок (в том числе «через две недели», «в последнюю субботу сентября»), приоритет или статус, ставить/убирать тег. Например: «перенеси задачу про отчёт на через две недели» или «допиши в описание задачи про МЭИ, что нужен акт сверки».
       </p>
 
       <form onSubmit={handleSubmit} className="mt-3 space-y-3">
