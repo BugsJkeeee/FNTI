@@ -88,8 +88,14 @@ create policy "tasks_insert" on tasks
 -- Редактировать может автор или исполнитель.
 -- Разграничение "только статус — только исполнителю" обеспечивается в API (route handler),
 -- т.к. RLS policy не различает, какое именно поле меняется в UPDATE.
+-- USING проверяет, что редактирующий был причастен к задаче ДО изменения — этого достаточно.
+-- WITH CHECK намеренно (true): без него Postgres по умолчанию переиспользует USING и для
+-- НОВОЙ строки — тогда исполнитель (не автор), переназначающий задачу на кого-то другого,
+-- получал бы "new row violates row-level security policy", хотя API это разрешает.
 create policy "tasks_update" on tasks
-  for update using (auth.uid() = author_id or auth.uid() = assignee_id);
+  for update
+  using (auth.uid() = author_id or auth.uid() = assignee_id)
+  with check (true);
 
 -- Удалить может автор или исполнитель
 create policy "tasks_delete" on tasks
