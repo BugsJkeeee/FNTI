@@ -85,12 +85,49 @@ export default function DashboardBoard({
   const [hoverTarget, setHoverTarget] = useState<DropTarget | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const dragClientXRef = useRef<number | null>(null)
 
   useEffect(() => {
     return () => {
       if (noticeTimer.current) clearTimeout(noticeTimer.current)
     }
   }, [])
+
+  // Автоскролл колонок по горизонтали, пока курсор с перетаскиваемой задачей
+  // держится у левого/правого края видимой области — иначе сотрудников,
+  // не помещающихся на экране, было бы нечем достать при drag-and-drop.
+  useEffect(() => {
+    if (!draggingTaskId) {
+      dragClientXRef.current = null
+      return
+    }
+
+    const EDGE = 70
+    const MAX_SPEED = 14
+    let frame: number
+
+    function tick() {
+      const container = scrollContainerRef.current
+      const x = dragClientXRef.current
+      if (container && x !== null) {
+        const rect = container.getBoundingClientRect()
+        if (x > rect.right - EDGE) {
+          container.scrollLeft += MAX_SPEED * Math.min(1, (x - (rect.right - EDGE)) / EDGE)
+        } else if (x < rect.left + EDGE) {
+          container.scrollLeft -= MAX_SPEED * Math.min(1, (rect.left + EDGE - x) / EDGE)
+        }
+      }
+      frame = requestAnimationFrame(tick)
+    }
+    frame = requestAnimationFrame(tick)
+
+    return () => cancelAnimationFrame(frame)
+  }, [draggingTaskId])
+
+  function handleContainerDragOver(e: React.DragEvent) {
+    dragClientXRef.current = e.clientX
+  }
 
   function showNotice(message: string) {
     setNotice(message)
@@ -155,7 +192,7 @@ export default function DashboardBoard({
 
   return (
     <div>
-      <div className="flex gap-3 overflow-x-auto pb-2">
+      <div ref={scrollContainerRef} onDragOver={handleContainerDragOver} className="flex gap-3 overflow-x-auto pb-2">
         {employees.map((employee) => {
           const empTasks = tasksByEmployee.get(employee.id) ?? []
           return (
