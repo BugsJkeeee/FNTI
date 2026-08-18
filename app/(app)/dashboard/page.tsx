@@ -21,16 +21,17 @@ export default async function DashboardPage() {
   const visibleTasks = filterVisibleTasks(tasksWithTags, employee!.id)
 
   const team = (employees as Employee[]) ?? []
-  const tasksByEmployee = new Map<string, Task[]>()
-  team.forEach((e) => tasksByEmployee.set(e.id, visibleTasks.filter((t) => t.assignee_id === e.id)))
 
   return (
     <div>
       <h1 className="font-display text-xl font-semibold text-ink">Дашборд команды</h1>
-      <p className="mt-1 text-sm text-ink-soft">Задачи каждого участника: сначала в работе, потом новые, потом завершённые.</p>
+      <p className="mt-1 text-sm text-ink-soft">
+        Задачи каждого участника: сначала в работе, потом новые, потом завершённые. Задачу можно перетащить на другого
+        исполнителя или в другой статус.
+      </p>
 
       <div className="mt-6">
-        <DashboardBoard employees={team} tasksByEmployee={tasksByEmployee} />
+        <DashboardBoard employees={team} initialTasks={visibleTasks} />
       </div>
     </div>
   )

@@ -1,3 +1,6 @@
+'use client'
+
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import type { Employee, Priority, Status, Task } from '@/types'
 import { getDisplayStatus } from '@/lib/task-status'
@@ -15,13 +18,28 @@ const GROUPS: { status: Status; label: string }[] = [
   { status: 'выполнена', label: 'Завершено' },
 ]
 
-function DashboardTaskItem({ task }: { task: Task }) {
+function DashboardTaskItem({
+  task,
+  dragging,
+  onDragStart,
+  onDragEnd,
+}: {
+  task: Task
+  dragging: boolean
+  onDragStart: (e: React.DragEvent, taskId: string) => void
+  onDragEnd: () => void
+}) {
   const overdue = getDisplayStatus(task) === 'просрочена'
 
   return (
     <Link
       href={`/tasks/${task.id}?from=dashboard`}
-      className={`relative block rounded-md border-l-4 bg-paper px-1.5 py-1 text-xs transition hover:opacity-80 ${priorityBorder[task.priority]}`}
+      draggable
+      onDragStart={(e) => onDragStart(e, task.id)}
+      onDragEnd={onDragEnd}
+      className={`relative block cursor-grab rounded-md border-l-4 bg-paper px-1.5 py-1 text-xs transition hover:opacity-80 active:cursor-grabbing ${
+        dragging ? 'opacity-30' : ''
+      } ${priorityBorder[task.priority]}`}
     >
       {task.has_unread_comment && (
         <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-urgent ring-2 ring-paper" />
@@ -49,49 +67,154 @@ function DashboardTaskItem({ task }: { task: Task }) {
   )
 }
 
+type DropTarget = { employeeId: string; status: Status }
+
+function targetsEqual(a: DropTarget, b: DropTarget) {
+  return a.employeeId === b.employeeId && a.status === b.status
+}
+
 export default function DashboardBoard({
   employees,
-  tasksByEmployee,
+  initialTasks,
 }: {
   employees: Employee[]
-  tasksByEmployee: Map<string, Task[]>
+  initialTasks: Task[]
 }) {
-  return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {employees.map((employee) => {
-        const tasks = tasksByEmployee.get(employee.id) ?? []
-        return (
-          <div key={employee.id} className="rounded-xl border border-line bg-white p-2.5">
-            <div className="flex items-center justify-between border-b border-line pb-1.5">
-              <h2 className="font-display text-xs font-semibold text-ink">{employee.name}</h2>
-              <span className="font-mono text-[10px] text-ink-soft">{tasks.length} всего</span>
-            </div>
+  const [tasks, setTasks] = useState(initialTasks)
+  const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null)
+  const [hoverTarget, setHoverTarget] = useState<DropTarget | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-            <div className="mt-2 space-y-2.5">
-              {GROUPS.map(({ status, label }) => {
-                const groupTasks = tasks.filter((t) => t.status === status)
-                return (
-                  <div key={status}>
-                    <div className="mb-1 flex items-center justify-between">
-                      <h3 className="font-mono text-[10px] font-medium text-ink-soft">{label}</h3>
-                      <span className="font-mono text-[10px] text-ink-soft">{groupTasks.length}</span>
-                    </div>
-                    {groupTasks.length === 0 ? (
-                      <p className="text-[10px] text-ink-soft/60">пусто</p>
-                    ) : (
-                      <div className="space-y-1">
-                        {groupTasks.map((t) => (
-                          <DashboardTaskItem key={t.id} task={t} />
-                        ))}
+  useEffect(() => {
+    return () => {
+      if (noticeTimer.current) clearTimeout(noticeTimer.current)
+    }
+  }, [])
+
+  function showNotice(message: string) {
+    setNotice(message)
+    if (noticeTimer.current) clearTimeout(noticeTimer.current)
+    noticeTimer.current = setTimeout(() => setNotice(null), 5000)
+  }
+
+  const tasksByEmployee = useMemo(() => {
+    const map = new Map<string, Task[]>()
+    employees.forEach((e) => map.set(e.id, tasks.filter((t) => t.assignee_id === e.id)))
+    return map
+  }, [employees, tasks])
+
+  function handleDragStart(e: React.DragEvent, taskId: string) {
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', taskId)
+    setDraggingTaskId(taskId)
+  }
+
+  function handleDragEnd() {
+    setDraggingTaskId(null)
+    setHoverTarget(null)
+  }
+
+  async function handleDrop(e: React.DragEvent, target: DropTarget) {
+    e.preventDefault()
+    setHoverTarget(null)
+    const taskId = e.dataTransfer.getData('text/plain') || draggingTaskId
+    setDraggingTaskId(null)
+    if (!taskId) return
+
+    const task = tasks.find((t) => t.id === taskId)
+    if (!task) return
+
+    const assigneeChanged = task.assignee_id !== target.employeeId
+    const statusChanged = task.status !== target.status
+    if (!assigneeChanged && !statusChanged) return
+
+    const updates: Partial<Pick<Task, 'assignee_id' | 'status'>> = {}
+    if (assigneeChanged) updates.assignee_id = target.employeeId
+    if (statusChanged) updates.status = target.status
+
+    const previous = tasks
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, ...updates } : t)))
+
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setTasks(previous)
+        showNotice(data.error ?? 'Не удалось перенести задачу')
+      }
+    } catch {
+      setTasks(previous)
+      showNotice('Проблема с сетью — не удалось перенести задачу')
+    }
+  }
+
+  return (
+    <div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {employees.map((employee) => {
+          const empTasks = tasksByEmployee.get(employee.id) ?? []
+          return (
+            <div key={employee.id} className="rounded-xl border border-line bg-white p-2.5">
+              <div className="flex items-center justify-between border-b border-line pb-1.5">
+                <h2 className="font-display text-xs font-semibold text-ink">{employee.name}</h2>
+                <span className="font-mono text-[10px] text-ink-soft">{empTasks.length} всего</span>
+              </div>
+
+              <div className="mt-2 space-y-2.5">
+                {GROUPS.map(({ status, label }) => {
+                  const groupTasks = empTasks.filter((t) => t.status === status)
+                  const target: DropTarget = { employeeId: employee.id, status }
+                  const isHover = hoverTarget && targetsEqual(hoverTarget, target)
+                  return (
+                    <div
+                      key={status}
+                      onDragOver={(e) => {
+                        e.preventDefault()
+                        e.dataTransfer.dropEffect = 'move'
+                        if (!hoverTarget || !targetsEqual(hoverTarget, target)) setHoverTarget(target)
+                      }}
+                      onDragLeave={() => setHoverTarget((prev) => (prev && targetsEqual(prev, target) ? null : prev))}
+                      onDrop={(e) => handleDrop(e, target)}
+                      className={`rounded-lg p-1 transition ${isHover ? 'bg-teal-soft ring-2 ring-teal ring-inset' : ''}`}
+                    >
+                      <div className="mb-1 flex items-center justify-between">
+                        <h3 className="font-mono text-[10px] font-medium text-ink-soft">{label}</h3>
+                        <span className="font-mono text-[10px] text-ink-soft">{groupTasks.length}</span>
                       </div>
-                    )}
-                  </div>
-                )
-              })}
+                      {groupTasks.length === 0 ? (
+                        <p className="text-[10px] text-ink-soft/60">пусто</p>
+                      ) : (
+                        <div className="space-y-1">
+                          {groupTasks.map((t) => (
+                            <DashboardTaskItem
+                              key={t.id}
+                              task={t}
+                              dragging={draggingTaskId === t.id}
+                              onDragStart={handleDragStart}
+                              onDragEnd={handleDragEnd}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
             </div>
-          </div>
-        )
-      })}
+          )
+        })}
+      </div>
+
+      {notice && (
+        <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-lg bg-urgent px-4 py-2.5 text-sm font-medium text-white shadow-lg">
+          {notice}
+        </div>
+      )}
     </div>
   )
 }
