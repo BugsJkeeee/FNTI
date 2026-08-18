@@ -77,6 +77,39 @@ create policy "employees_owner_insert" on employees
     exists (select 1 from employees e where e.id = auth.uid() and e.is_owner = true)
   );
 
+-- Участник может редактировать свою же строку (специализация, имя — см. ProfileForm).
+-- WITH CHECK (true) намеренно: точечная защита полей is_owner/email — триггером ниже,
+-- а не здесь, т.к. RLS не умеет сравнивать новое значение со старым по отдельным колонкам.
+create policy "employees_update_self" on employees
+  for update
+  using (auth.uid() = id)
+  with check (true);
+
+-- Не даёт обычному участнику через этот путь выдать себе is_owner или подменить email
+-- (email меняется только через Admin API — см. app/api/employees/[id]/route.ts).
+-- Server-side admin-клиент (service_role, используется в route handler'ах) уже прошёл
+-- проверку is_owner на уровне приложения — для него триггер не действует.
+create or replace function protect_employee_fields()
+returns trigger as $$
+begin
+  if auth.role() = 'service_role' then
+    return new;
+  end if;
+
+  if not exists (select 1 from employees where id = auth.uid() and is_owner = true) then
+    new.is_owner = old.is_owner;
+    new.email = old.email;
+  end if;
+
+  return new;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists employees_protect_fields on employees;
+create trigger employees_protect_fields
+  before update on employees
+  for each row execute function protect_employee_fields();
+
 -- Задачи видят все авторизованные — доска общая
 create policy "tasks_select_all" on tasks
   for select using (auth.role() = 'authenticated');
