@@ -131,7 +131,7 @@ export default function AnalyticsTable({
                 )
               }
               return (
-                <Link key={t.id} href={`/tasks/${t.id}`} className="block py-2 text-sm text-ink transition hover:text-teal">
+                <Link key={t.id} href={`/tasks/${t.id}?from=analytics`} className="block py-2 text-sm text-ink transition hover:text-teal">
                   <span className="font-mono text-xs text-ink-soft">#{t.number}</span> {t.text}
                 </Link>
               )

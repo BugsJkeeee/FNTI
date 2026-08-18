@@ -15,8 +15,14 @@ export default async function TaskPage({
 }) {
   const { id } = await params
   const { from } = await searchParams
-  const backHref = from === 'calendar' ? '/calendar' : '/board'
-  const backLabel = from === 'calendar' ? '← Назад к календарю' : '← Назад к доске'
+
+  const backTargets: Record<string, { href: string; label: string }> = {
+    calendar: { href: '/calendar', label: '← Назад к календарю' },
+    analytics: { href: '/analytics', label: '← Назад к аналитике' },
+    dashboard: { href: '/dashboard', label: '← Назад к дашборду' },
+  }
+  const { href: backHref, label: backLabel } = backTargets[from ?? ''] ?? { href: '/board', label: '← Назад к доске' }
+
   const employee = await getCurrentEmployee()
   const supabase = await createClient()
 
