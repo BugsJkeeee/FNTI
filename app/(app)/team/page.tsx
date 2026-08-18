@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentEmployee } from '@/lib/current-employee'
 import AddEmployeeForm from '@/components/AddEmployeeForm'
+import EmployeeList from '@/components/EmployeeList'
 import type { Employee } from '@/types'
 
 export default async function TeamPage() {
@@ -23,18 +24,8 @@ export default async function TeamPage() {
 
       <div className="rounded-2xl border border-line bg-white p-5">
         <h2 className="font-display text-base font-semibold text-ink">Все участники</h2>
-        <div className="mt-3 divide-y divide-line">
-          {employees.map((e) => (
-            <div key={e.id} className="flex items-center justify-between py-2.5">
-              <div>
-                <p className="text-sm font-medium text-ink">{e.name}</p>
-                <p className="text-xs text-ink-soft">{e.email} · {e.specialization || 'специализация не указана'}</p>
-              </div>
-              {e.is_owner && (
-                <span className="font-mono text-xs text-ink-soft">владелец</span>
-              )}
-            </div>
-          ))}
+        <div className="mt-3">
+          <EmployeeList employees={employees} currentEmployeeId={employee.id} />
         </div>
       </div>
     </div>
