@@ -72,3 +72,67 @@ body {
 .font-mono {
   font-family: var(--font-mono);
 }
+
+.peek-cat {
+  position: fixed;
+  right: 0;
+  bottom: max(0.75rem, env(safe-area-inset-bottom));
+  z-index: 60;
+  width: min(9rem, 34vw);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(calc(100% + 1rem));
+  transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1), opacity 250ms ease;
+  filter: drop-shadow(0 0.55rem 0.65rem rgb(18 24 31 / 18%));
+}
+
+.peek-cat--visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.peek-cat svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.peek-cat__paw {
+  transform-box: fill-box;
+  transform-origin: 80% 85%;
+}
+
+.peek-cat--visible .peek-cat__paw {
+  animation: peek-cat-wave 480ms ease-in-out 350ms 5 alternate;
+}
+
+.peek-cat__caption {
+  position: absolute;
+  top: 0.25rem;
+  left: -0.35rem;
+  padding: 0.2rem 0.45rem;
+  border: 2px solid #382b25;
+  border-radius: 999px;
+  background: white;
+  color: #382b25;
+  font-family: var(--font-display);
+  font-size: 0.65rem;
+  font-weight: 700;
+  transform: rotate(-7deg);
+}
+
+@keyframes peek-cat-wave {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-22deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .peek-cat {
+    transition: opacity 150ms ease;
+  }
+
+  .peek-cat--visible .peek-cat__paw {
+    animation: none;
+  }
+}

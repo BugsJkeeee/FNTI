@@ -4,6 +4,7 @@ import { getCurrentEmployee } from '@/lib/current-employee'
 import { createClient } from '@/lib/supabase/server'
 import SignOutButton from '@/components/SignOutButton'
 import AiCommandMenu from '@/components/AiCommandMenu'
+import PeekCat from '@/components/PeekCat'
 import type { Employee } from '@/types'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -75,6 +76,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </header>
       <main className="mx-auto max-w-7xl px-4 py-8">{children}</main>
+      <PeekCat />
     </div>
   )
 }
