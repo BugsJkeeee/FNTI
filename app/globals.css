@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+:root {
+  /* Основа */
+  --color-paper: #F6F5F2;
+  --color-ink: #12181F;
+  --color-ink-soft: #4A5563;
+  --color-line: #DEDBD3;
+
+  /* Бренд */
+  --color-graphite: #1F2A3D;
+  --color-graphite-light: #2E3D57;
+  --color-teal: #1E8A82;
+  --color-teal-soft: #E3F1EF;
+
+  /* Статусы / приоритеты */
+  --color-urgent: #C4472B;
+  --color-urgent-soft: #FBEAE5;
+  --color-normal: #C7912F;
+  --color-normal-soft: #FBF2E0;
+  --color-low: #5B7A63;
+  --color-low-soft: #EBF1EC;
+  --color-done: #3A6B54;
+  --color-overdue: #B3261E;
+
+  /* Яркие акценты приоритета — для обводок и иконок-индикаторов */
+  --color-urgent-bright: #EF4444;
+  --color-normal-bright: #EAB308;
+  --color-low-bright: #22C55E;
+}
+
+@theme inline {
+  --color-paper: var(--color-paper);
+  --color-ink: var(--color-ink);
+  --color-ink-soft: var(--color-ink-soft);
+  --color-line: var(--color-line);
+  --color-graphite: var(--color-graphite);
+  --color-graphite-light: var(--color-graphite-light);
+  --color-teal: var(--color-teal);
+  --color-teal-soft: var(--color-teal-soft);
+  --color-urgent: var(--color-urgent);
+  --color-urgent-soft: var(--color-urgent-soft);
+  --color-normal: var(--color-normal);
+  --color-normal-soft: var(--color-normal-soft);
+  --color-low: var(--color-low);
+  --color-low-soft: var(--color-low-soft);
+  --color-done: var(--color-done);
+  --color-overdue: var(--color-overdue);
+  --color-urgent-bright: var(--color-urgent-bright);
+  --color-normal-bright: var(--color-normal-bright);
+  --color-low-bright: var(--color-low-bright);
+
+  --font-display: 'Segoe UI', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-sans: 'Segoe UI', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: 'Consolas', ui-monospace, 'Cascadia Code', monospace;
+}
+
+html {
+  font-size: 125%;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
