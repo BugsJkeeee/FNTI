@@ -77,9 +77,9 @@ ${tagContext || '(тегов нет)'}
 }`
 
   const candidateModels = [
-    'qwen/qwen-2.5-7b-instruct:free',
-    'google/gemma-2-9b-it:free',
-    'meta-llama/llama-3.1-8b-instruct:free',
+    'openai/gpt-oss-20b:free',
+    'nvidia/nemotron-3-super-120b-a12b:free',
+    'nvidia/nemotron-nano-9b-v2:free',
     'openrouter/free',
   ]
 
@@ -98,7 +98,7 @@ ${tagContext || '(тегов нет)'}
         messages: [{ role: 'user', content: prompt }],
         response_format: { type: 'json_object' },
         temperature: 0.2,
-        max_tokens: 400,
+        max_tokens: 600,
       }),
     })
 
