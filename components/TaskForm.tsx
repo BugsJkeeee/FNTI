@@ -18,10 +18,12 @@ export default function TaskForm({
   defaultAssigneeId?: string
   onCreated: () => void
 }) {
+  const [expanded, setExpanded] = useState(false)
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [created, setCreated] = useState<{ type: 'ai'; suggestion: AiSuggestion } | { type: 'manual' } | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const [manualOpen, setManualOpen] = useState(false)
   const [manualText, setManualText] = useState('')
@@ -44,6 +46,17 @@ export default function TaskForm({
 
   function toggleManualTag(tagId: string) {
     setManualTagIds((prev) => (prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]))
+  }
+
+  function expand() {
+    setExpanded(true)
+    setTimeout(() => textareaRef.current?.focus(), 0)
+  }
+
+  function collapse() {
+    setExpanded(false)
+    setText('')
+    setError(null)
   }
 
   function openManual(prefillText: string) {
@@ -108,6 +121,7 @@ export default function TaskForm({
 
       setCreated({ type: 'ai', suggestion })
       setText('')
+      setExpanded(false)
       onCreated()
     } catch {
       setError('Проблема с сетью. Попробуй ещё раз или заполни вручную.')
@@ -166,6 +180,7 @@ export default function TaskForm({
       setError(null)
       setCreated({ type: 'manual' })
       setText('')
+      setExpanded(false)
       onCreated()
     } finally {
       setManualSaving(false)
@@ -173,41 +188,54 @@ export default function TaskForm({
   }
 
   return (
-    <div className="rounded-2xl border border-line bg-white p-5">
-      <h2 className="font-display text-base font-semibold text-ink">Новая задача</h2>
-      <p className="mt-0.5 text-sm text-ink-soft">
-        Опиши задачу одной строкой — кому, к какому сроку и насколько срочно можно указать прямо в тексте. ИИ разберётся и сразу создаст задачу.
-      </p>
+    <div className="rounded-2xl border border-line bg-white p-3">
+      {expanded ? (
+        <div className="space-y-3">
+          <textarea
+            ref={textareaRef}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={handleTextareaKeyDown}
+            rows={2}
+            placeholder="Опиши задачу одной строкой — кому, к какому сроку и насколько срочно. ИИ разберётся сам."
+            className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-teal focus:ring-2 focus:ring-teal/20"
+          />
 
-      <div className="mt-4 space-y-3">
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={handleTextareaKeyDown}
-          rows={2}
-          placeholder="Например: Пете обновить прайс лист и отправить клиенту до среды, срочно, там ошибка в ценах"
-          className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus:border-teal focus:ring-2 focus:ring-teal/20"
-        />
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleSubmit}
-            disabled={!text.trim() || loading}
-            className="flex items-center gap-2 rounded-lg bg-teal px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50"
-          >
-            {loading && <Spinner />}
-            {loading ? 'Создаю…' : 'Создать задачу'}
-          </button>
-          <button
-            type="button"
-            onClick={() => openManual(text)}
-            title="Добавить задачу вручную"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-line text-base transition hover:border-teal"
-          >
-            ✋
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleSubmit}
+              disabled={!text.trim() || loading}
+              className="flex items-center gap-2 rounded-lg bg-teal px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50"
+            >
+              {loading && <Spinner />}
+              {loading ? 'Создаю…' : 'Создать задачу'}
+            </button>
+            <button
+              type="button"
+              onClick={() => openManual(text)}
+              title="Добавить задачу вручную"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-line text-base transition hover:border-teal"
+            >
+              ✋
+            </button>
+            <button
+              type="button"
+              onClick={collapse}
+              className="ml-auto rounded-lg px-2 py-2 text-sm text-ink-soft transition hover:text-ink"
+            >
+              Свернуть
+            </button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <button
+          type="button"
+          onClick={expand}
+          className="flex w-full items-center gap-2 rounded-lg border border-dashed border-line px-3 py-2.5 text-sm text-ink-soft transition hover:border-teal hover:text-teal"
+        >
+          <span className="text-base font-semibold text-teal">+</span> Новая задача
+        </button>
+      )}
 
       {error && (
         <p className="mt-3 rounded-lg bg-urgent-soft px-3 py-2 text-sm text-urgent">{error}</p>
