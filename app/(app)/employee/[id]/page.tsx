@@ -5,6 +5,7 @@ import { attachCommentInfo } from '@/lib/comments'
 import { attachTagInfo, filterVisibleTasks } from '@/lib/tags'
 import TaskCard from '@/components/TaskCard'
 import EmployeeQuickCreate from '@/components/EmployeeQuickCreate'
+import RealtimeTaskRefresher from '@/components/RealtimeTaskRefresher'
 import type { Employee, Task } from '@/types'
 
 export default async function EmployeePage({ params }: { params: Promise<{ id: string }> }) {
@@ -31,6 +32,7 @@ export default async function EmployeePage({ params }: { params: Promise<{ id: s
 
   return (
     <div className="space-y-8">
+      <RealtimeTaskRefresher />
       <div>
         <h1 className="font-display text-xl font-semibold text-ink">{person.name}</h1>
         <p className="mt-1 text-sm text-ink-soft">{person.specialization || 'специализация не указана'} · {person.email}</p>

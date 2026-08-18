@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import type { Employee, Priority, Status, Task } from '@/types'
 import { getDisplayStatus } from '@/lib/task-status'
+import { useTaskInserted } from '@/lib/hooks/useTaskInserted'
 
 const priorityBorder: Record<Priority, string> = {
   'срочно': 'border-urgent-bright',
@@ -93,6 +94,11 @@ export default function DashboardBoard({
       if (noticeTimer.current) clearTimeout(noticeTimer.current)
     }
   }, [])
+
+  useTaskInserted(async () => {
+    const res = await fetch('/api/tasks')
+    if (res.ok) setTasks(await res.json())
+  })
 
   // Автоскролл колонок по горизонтали, пока курсор с перетаскиваемой задачей
   // держится у левого/правого края видимой области — иначе сотрудников,

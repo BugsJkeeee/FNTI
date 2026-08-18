@@ -6,6 +6,7 @@ import TaskForm from '@/components/TaskForm'
 import TaskCard from '@/components/TaskCard'
 import { priorityLabels, statusLabels } from '@/components/Badges'
 import { getDisplayStatus, isBurning, isOverdue } from '@/lib/task-status'
+import { useTaskInserted } from '@/lib/hooks/useTaskInserted'
 
 export default function TeamBoard({
   currentEmployee,
@@ -33,6 +34,10 @@ export default function TeamBoard({
     const res = await fetch('/api/tasks')
     if (res.ok) setTasks(await res.json())
   }
+
+  // Как только кто-то создаёт задачу — подтягиваем актуальный список сами,
+  // без ручного обновления страницы.
+  useTaskInserted(refresh)
 
   const overdue = useMemo(() => tasks.filter((t) => isOverdue(t)), [tasks])
   const burning = useMemo(() => tasks.filter((t) => isBurning(t)), [tasks])

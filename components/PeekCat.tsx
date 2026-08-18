@@ -1,34 +1,23 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useTaskInserted } from '@/lib/hooks/useTaskInserted'
 
-const APPEAR_AFTER_MS = 5_000
 const STAY_VISIBLE_MS = 3_000
 
 export default function PeekCat() {
   const [visible, setVisible] = useState(false)
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+  useTaskInserted(() => {
+    setVisible(true)
+    if (hideTimer.current) clearTimeout(hideTimer.current)
+    hideTimer.current = setTimeout(() => setVisible(false), STAY_VISIBLE_MS)
+  })
 
   useEffect(() => {
-    let showTimer: ReturnType<typeof setTimeout> | undefined
-    let hideTimer: ReturnType<typeof setTimeout> | undefined
-
-    function startAppearanceTimer() {
-      showTimer = setTimeout(() => {
-        setVisible(true)
-        hideTimer = setTimeout(() => setVisible(false), STAY_VISIBLE_MS)
-      }, APPEAR_AFTER_MS)
-    }
-
-    if (document.readyState === 'complete') {
-      startAppearanceTimer()
-    } else {
-      window.addEventListener('load', startAppearanceTimer, { once: true })
-    }
-
     return () => {
-      window.removeEventListener('load', startAppearanceTimer)
-      if (showTimer) clearTimeout(showTimer)
-      if (hideTimer) clearTimeout(hideTimer)
+      if (hideTimer.current) clearTimeout(hideTimer.current)
     }
   }, [])
 

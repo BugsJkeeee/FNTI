@@ -3,6 +3,7 @@ import { getCurrentEmployee } from '@/lib/current-employee'
 import { attachCommentInfo } from '@/lib/comments'
 import { attachTagInfo, filterVisibleTasks } from '@/lib/tags'
 import CalendarView from '@/components/CalendarView'
+import RealtimeTaskRefresher from '@/components/RealtimeTaskRefresher'
 import type { Employee, Task } from '@/types'
 
 function toISODate(d: Date) {
@@ -56,6 +57,7 @@ export default async function CalendarPage() {
 
   return (
     <div>
+      <RealtimeTaskRefresher />
       <h1 className="font-display text-xl font-semibold text-ink">Календарь команды</h1>
       <p className="mt-1 text-sm text-ink-soft">Сроки, приоритеты и содержание всех активных задач.</p>
 

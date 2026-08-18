@@ -8,6 +8,7 @@ import TaskCard from '@/components/TaskCard'
 import SummaryStats from '@/components/SummaryStats'
 import { priorityLabels, statusLabels } from '@/components/Badges'
 import { getDisplayStatus, isBurning, isOverdue } from '@/lib/task-status'
+import { useTaskInserted } from '@/lib/hooks/useTaskInserted'
 
 export default function MyDashboard({
   currentEmployee,
@@ -30,6 +31,8 @@ export default function MyDashboard({
     const res = await fetch('/api/tasks')
     if (res.ok) setTasks(await res.json())
   }
+
+  useTaskInserted(refresh)
 
   const myOverdue = useMemo(
     () => tasks.filter((t) => t.assignee_id === currentEmployee.id && isOverdue(t)),

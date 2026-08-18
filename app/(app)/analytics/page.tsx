@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getCurrentEmployee } from '@/lib/current-employee'
 import { attachTagInfo } from '@/lib/tags'
 import AnalyticsTable from '@/components/AnalyticsTable'
+import RealtimeTaskRefresher from '@/components/RealtimeTaskRefresher'
 import type { Employee, Task } from '@/types'
 import { getDisplayStatus } from '@/lib/task-status'
 
@@ -34,6 +35,7 @@ export default async function AnalyticsPage() {
 
   return (
     <div>
+      <RealtimeTaskRefresher />
       <h1 className="font-display text-xl font-semibold text-ink">Аналитика команды</h1>
       <p className="mt-1 text-sm text-ink-soft">Загрузка и темп выполнения по каждому участнику.</p>
 
