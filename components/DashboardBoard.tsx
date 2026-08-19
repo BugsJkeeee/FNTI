@@ -43,13 +43,16 @@ function DashboardTaskItem({
       } ${priorityBorder[task.priority]}`}
     >
       {task.has_unread_comment && (
-        <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-urgent ring-2 ring-paper" />
+        <span
+          title="Есть непрочитанные комментарии"
+          className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-urgent ring-2 ring-paper"
+        />
       )}
       <div className="flex items-start justify-between gap-1.5">
         <p className="line-clamp-2 leading-snug text-ink">{task.text}</p>
         <span className="shrink-0 font-mono text-[9px] text-ink-soft">#{task.number}</span>
       </div>
-      {(task.priority === 'срочно' || overdue || task.deadline) && (
+      {(task.priority === 'срочно' || overdue || task.deadline || !!task.comment_count) && (
         <div className="mt-1 flex flex-wrap items-center gap-1">
           {task.priority === 'срочно' && (
             <span className="rounded-full bg-urgent-soft px-1 py-0.5 font-mono text-[8px] font-medium text-urgent">Срочно</span>
@@ -60,6 +63,18 @@ function DashboardTaskItem({
           {task.deadline && (
             <span className="font-mono text-[8px] text-ink-soft">
               {new Date(task.deadline).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
+            </span>
+          )}
+          {!!task.comment_count && (
+            <span
+              className={`ml-auto flex items-center gap-0.5 font-mono text-[8px] ${
+                task.has_unread_comment ? 'font-semibold text-urgent' : 'text-ink-soft'
+              }`}
+            >
+              <svg viewBox="0 0 20 20" fill="currentColor" className="h-2.5 w-2.5 shrink-0">
+                <path d="M2 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H8l-4 3.5V14H4a2 2 0 0 1-2-2V4Z" />
+              </svg>
+              {task.comment_count}
             </span>
           )}
         </div>
