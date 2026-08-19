@@ -38,7 +38,7 @@ function DashboardTaskItem({
       draggable
       onDragStart={(e) => onDragStart(e, task.id)}
       onDragEnd={onDragEnd}
-      className={`relative block cursor-grab rounded-md border-l-4 bg-paper px-1.5 py-1 text-xs transition hover:opacity-80 active:cursor-grabbing ${
+      className={`relative block cursor-grab rounded-md border-l-4 bg-paper px-1.5 py-1 text-[11px] transition hover:opacity-80 active:cursor-grabbing ${
         dragging ? 'opacity-30' : ''
       } ${priorityBorder[task.priority]}`}
     >
@@ -47,18 +47,18 @@ function DashboardTaskItem({
       )}
       <div className="flex items-start justify-between gap-1.5">
         <p className="line-clamp-2 leading-snug text-ink">{task.text}</p>
-        <span className="shrink-0 font-mono text-[10px] text-ink-soft">#{task.number}</span>
+        <span className="shrink-0 font-mono text-[9px] text-ink-soft">#{task.number}</span>
       </div>
       {(task.priority === 'срочно' || overdue || task.deadline) && (
         <div className="mt-1 flex flex-wrap items-center gap-1">
           {task.priority === 'срочно' && (
-            <span className="rounded-full bg-urgent-soft px-1 py-0.5 font-mono text-[9px] font-medium text-urgent">Срочно</span>
+            <span className="rounded-full bg-urgent-soft px-1 py-0.5 font-mono text-[8px] font-medium text-urgent">Срочно</span>
           )}
           {overdue && (
-            <span className="rounded-full bg-urgent-soft px-1 py-0.5 font-mono text-[9px] font-medium text-overdue">Просрочена</span>
+            <span className="rounded-full bg-urgent-soft px-1 py-0.5 font-mono text-[8px] font-medium text-overdue">Просрочена</span>
           )}
           {task.deadline && (
-            <span className="font-mono text-[9px] text-ink-soft">
+            <span className="font-mono text-[8px] text-ink-soft">
               {new Date(task.deadline).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
             </span>
           )}
@@ -202,7 +202,7 @@ export default function DashboardBoard({
         {employees.map((employee) => {
           const empTasks = tasksByEmployee.get(employee.id) ?? []
           return (
-            <div key={employee.id} className="@container min-w-64 flex-1 rounded-xl border border-line bg-white p-2.5">
+            <div key={employee.id} className="min-w-64 flex-1 rounded-xl border border-line bg-white p-2.5">
               <div className="flex items-center justify-between border-b border-line pb-1.5">
                 <h2 className="font-display text-xs font-semibold text-ink">{employee.name}</h2>
                 <span className="font-mono text-[10px] text-ink-soft">{empTasks.length} всего</span>
@@ -232,7 +232,7 @@ export default function DashboardBoard({
                       {groupTasks.length === 0 ? (
                         <p className="text-[10px] text-ink-soft/60">пусто</p>
                       ) : (
-                        <div className="grid grid-cols-1 gap-1 @[420px]:grid-cols-2">
+                        <div className="space-y-1">
                           {groupTasks.map((t) => (
                             <DashboardTaskItem
                               key={t.id}
