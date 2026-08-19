@@ -202,7 +202,7 @@ export default function DashboardBoard({
         {employees.map((employee) => {
           const empTasks = tasksByEmployee.get(employee.id) ?? []
           return (
-            <div key={employee.id} className="w-64 shrink-0 rounded-xl border border-line bg-white p-2.5">
+            <div key={employee.id} className="@container min-w-64 flex-1 rounded-xl border border-line bg-white p-2.5">
               <div className="flex items-center justify-between border-b border-line pb-1.5">
                 <h2 className="font-display text-xs font-semibold text-ink">{employee.name}</h2>
                 <span className="font-mono text-[10px] text-ink-soft">{empTasks.length} всего</span>
@@ -232,7 +232,7 @@ export default function DashboardBoard({
                       {groupTasks.length === 0 ? (
                         <p className="text-[10px] text-ink-soft/60">пусто</p>
                       ) : (
-                        <div className="space-y-1">
+                        <div className="grid grid-cols-1 gap-1 @[420px]:grid-cols-2">
                           {groupTasks.map((t) => (
                             <DashboardTaskItem
                               key={t.id}
