@@ -31,11 +31,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                 <Link href="/dashboard" className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium text-ink-soft hover:bg-paper hover:text-ink">
                   Дашборд
                 </Link>
-                <Link href="/me" className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium text-ink-soft hover:bg-paper hover:text-ink">
-                  Личный кабинет
+                <Link href="/projects" className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium text-ink-soft hover:bg-paper hover:text-ink">
+                  Проекты
                 </Link>
                 <Link href="/calendar" className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium text-ink-soft hover:bg-paper hover:text-ink">
                   Календарь
+                </Link>
+                <Link href="/me" className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium text-ink-soft hover:bg-paper hover:text-ink">
+                  Личный кабинет
                 </Link>
                 <Link href="/analytics" className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium text-ink-soft hover:bg-paper hover:text-ink">
                   Аналитика
