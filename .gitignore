@@ -26,6 +26,9 @@
 pass.txt
 *.pass.txt
 
+# реестр проектов НИОКР — реальные ИНН/КПП/суммы грантов, не для публичного репо
+reestr-proektov*.md
+
 # debug
 npm-debug.log*
 yarn-debug.log*
