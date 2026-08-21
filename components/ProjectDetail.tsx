@@ -2,10 +2,11 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { ChecklistTrack, Employee, Project, ProjectChecklistItem, ProjectContract, ProjectStage } from '@/types'
+import type { ChecklistTrack, Employee, Project, ProjectChecklistItem, ProjectClaim, ProjectContract, ProjectPayment, ProjectStage } from '@/types'
 import { isStageClosed } from '@/lib/project-checklist-templates'
 import ProjectChecklist from '@/components/ProjectChecklist'
 import ProjectComments from '@/components/ProjectComments'
+import StageClaimsList from '@/components/StageClaimInfo'
 
 function formatRub(n: number | null) {
   if (n === null) return '—'
@@ -18,7 +19,14 @@ function formatDate(d: string | null) {
 
 const STATUS_LABEL: Record<Project['status'], string> = {
   active: 'Действующий',
+  terminating: 'Прекращаем',
   terminated: 'Прекращён',
+}
+
+const STATUS_BADGE_CLASS: Record<Project['status'], string> = {
+  active: 'bg-teal-soft text-teal',
+  terminating: 'bg-normal-soft text-normal',
+  terminated: 'bg-urgent-soft text-urgent',
 }
 
 const HEADER_FIELDS = [
@@ -91,11 +99,7 @@ function ProjectHeader({ project, isOwner, onSaved }: { project: Project; isOwne
             <div className="font-mono text-xs text-ink-soft">ID {project.number} · {project.wave} волна</div>
             <div className="mt-0.5 flex items-center gap-2">
               <h1 className="font-display text-xl font-semibold text-ink">{project.code}</h1>
-              <span
-                className={`rounded-full px-2 py-0.5 font-mono text-[11px] font-medium ${
-                  project.status === 'terminated' ? 'bg-urgent-soft text-urgent' : 'bg-teal-soft text-teal'
-                }`}
-              >
+              <span className={`rounded-full px-2 py-0.5 font-mono text-[11px] font-medium ${STATUS_BADGE_CLASS[project.status]}`}>
                 {STATUS_LABEL[project.status]}
               </span>
             </div>
@@ -186,6 +190,7 @@ function ProjectHeader({ project, isOwner, onSaved }: { project: Project; isOwne
             className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm outline-none focus:border-teal"
           >
             <option value="active">Действующий</option>
+            <option value="terminating">Прекращаем</option>
             <option value="terminated">Прекращён</option>
           </select>
         </div>
@@ -213,6 +218,7 @@ function ContractRow({ projectId, contract, onSaved }: { projectId: string; cont
   const [editing, setEditing] = useState(false)
   const [akr, setAkr] = useState(contract.akr)
   const [saving, setSaving] = useState(false)
+  const [showDetails, setShowDetails] = useState(false)
 
   function startEditing() {
     setAkr(contract.akr)
@@ -238,37 +244,47 @@ function ContractRow({ projectId, contract, onSaved }: { projectId: string; cont
   }
 
   return (
-    <li className="flex flex-wrap items-center gap-2">
-      <span className="font-mono text-xs text-ink-soft">
-        {contract.contract_number} от {formatDate(contract.contract_date)}{' '}
-        {contract.stage_number ? `(этап ${contract.stage_number})` : contract.contract_year ? `(${contract.contract_year})` : ''}
-      </span>
-      {editing ? (
-        <>
-          <input
-            value={akr}
-            onChange={(e) => setAkr(e.target.value.replace(/\D/g, '').slice(0, 8))}
-            inputMode="numeric"
-            maxLength={8}
-            placeholder="АКР"
-            autoFocus
-            className="w-24 rounded-md border border-line bg-paper px-2 py-1 font-mono text-xs text-ink outline-none focus:border-teal"
-          />
-          <button
-            onClick={saveAkr}
-            disabled={saving}
-            className="rounded-md border border-line px-2 py-1 text-xs text-ink-soft transition hover:border-teal hover:text-teal disabled:opacity-50"
-          >
-            {saving ? 'Сохраняю…' : 'Сохранить'}
+    <li>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-mono text-xs text-ink-soft">
+          {contract.contract_number} от {formatDate(contract.contract_date)}{' '}
+          {contract.stage_number ? `(этап ${contract.stage_number})` : contract.contract_year ? `(${contract.contract_year})` : ''}
+        </span>
+        {editing ? (
+          <>
+            <input
+              value={akr}
+              onChange={(e) => setAkr(e.target.value.replace(/\D/g, '').slice(0, 8))}
+              inputMode="numeric"
+              maxLength={8}
+              placeholder="АКР"
+              autoFocus
+              className="w-24 rounded-md border border-line bg-paper px-2 py-1 font-mono text-xs text-ink outline-none focus:border-teal"
+            />
+            <button
+              onClick={saveAkr}
+              disabled={saving}
+              className="rounded-md border border-line px-2 py-1 text-xs text-ink-soft transition hover:border-teal hover:text-teal disabled:opacity-50"
+            >
+              {saving ? 'Сохраняю…' : 'Сохранить'}
+            </button>
+            <button onClick={() => setEditing(false)} className="text-xs text-ink-soft hover:text-ink">Отмена</button>
+          </>
+        ) : contract.akr ? (
+          <button onClick={startEditing} className="font-mono text-xs text-ink-soft transition hover:text-teal">
+            АКР: {contract.akr}
           </button>
-          <button onClick={() => setEditing(false)} className="text-xs text-ink-soft hover:text-ink">Отмена</button>
-        </>
-      ) : contract.akr ? (
-        <button onClick={startEditing} className="font-mono text-xs text-ink-soft transition hover:text-teal">
-          АКР: {contract.akr}
-        </button>
-      ) : (
-        <button onClick={startEditing} className="text-xs text-teal hover:opacity-80">+ добавить АКР</button>
+        ) : (
+          <button onClick={startEditing} className="text-xs text-teal hover:opacity-80">+ добавить АКР</button>
+        )}
+        {contract.additional_agreements && (
+          <button onClick={() => setShowDetails((s) => !s)} className="text-xs text-ink-soft transition hover:text-teal">
+            {showDetails ? 'скрыть доп. соглашения' : 'доп. соглашения'}
+          </button>
+        )}
+      </div>
+      {showDetails && contract.additional_agreements && (
+        <p className="mt-1.5 whitespace-pre-wrap text-[11px] text-ink-soft">{contract.additional_agreements}</p>
       )}
     </li>
   )
@@ -326,9 +342,11 @@ function ContractsCard({
         <p className="mt-2 text-sm text-ink-soft">Договоров пока нет.</p>
       ) : (
         <ul className="mt-2 space-y-1.5">
-          {contracts.map((c) => (
-            <ContractRow key={c.id} projectId={projectId} contract={c} onSaved={onSaved} />
-          ))}
+          {[...contracts]
+            .sort((a, b) => (a.contract_date ?? '9999-99-99').localeCompare(b.contract_date ?? '9999-99-99'))
+            .map((c) => (
+              <ContractRow key={c.id} projectId={projectId} contract={c} onSaved={onSaved} />
+            ))}
         </ul>
       )}
 
@@ -383,12 +401,18 @@ function ClosedStageSummary({
   onItemUpdate,
   onItemAdd,
   onItemDelete,
+  onClaimAdded,
+  onClaimSaved,
+  onClaimDeleted,
 }: {
   projectId: string
   stage: ProjectStage
   onItemUpdate: (item: ProjectChecklistItem) => void
   onItemAdd: (item: ProjectChecklistItem) => void
   onItemDelete: (itemId: string) => void
+  onClaimAdded: (c: ProjectClaim) => void
+  onClaimSaved: (c: ProjectClaim) => void
+  onClaimDeleted: (id: string) => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const items = stage.checklist_items ?? []
@@ -439,6 +463,10 @@ function ClosedStageSummary({
             onItemUpdate={onItemUpdate}
             onItemAdd={onItemAdd}
             onItemDelete={onItemDelete}
+            claims={stage.claims ?? []}
+            onClaimAdded={onClaimAdded}
+            onClaimSaved={onClaimSaved}
+            onClaimDeleted={onClaimDeleted}
           />
         </div>
       )}
@@ -455,6 +483,9 @@ function StageCard({
   onItemUpdate,
   onItemAdd,
   onItemDelete,
+  onClaimAdded,
+  onClaimSaved,
+  onClaimDeleted,
 }: {
   projectId: string
   stage: ProjectStage
@@ -464,6 +495,9 @@ function StageCard({
   onItemUpdate: (item: ProjectChecklistItem) => void
   onItemAdd: (item: ProjectChecklistItem) => void
   onItemDelete: (itemId: string) => void
+  onClaimAdded: (c: ProjectClaim) => void
+  onClaimSaved: (c: ProjectClaim) => void
+  onClaimDeleted: (id: string) => void
 }) {
   const closed = isStageClosed(stage.checklist_items ?? [])
   const [editingDates, setEditingDates] = useState(false)
@@ -546,11 +580,32 @@ function StageCard({
 
       <div className="mt-4">
         {closed ? (
-          <ClosedStageSummary projectId={projectId} stage={stage} onItemUpdate={onItemUpdate} onItemAdd={onItemAdd} onItemDelete={onItemDelete} />
+          <ClosedStageSummary
+            projectId={projectId}
+            stage={stage}
+            onItemUpdate={onItemUpdate}
+            onItemAdd={onItemAdd}
+            onItemDelete={onItemDelete}
+            onClaimAdded={onClaimAdded}
+            onClaimSaved={onClaimSaved}
+            onClaimDeleted={onClaimDeleted}
+          />
         ) : expanded ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <ProjectChecklist projectId={projectId} stageId={stage.id} track="technical" items={techItems} onItemUpdate={onItemUpdate} onItemAdd={onItemAdd} onItemDelete={onItemDelete} />
-            <ProjectChecklist projectId={projectId} stageId={stage.id} track="financial" items={finItems} onItemUpdate={onItemUpdate} onItemAdd={onItemAdd} onItemDelete={onItemDelete} />
+            <ProjectChecklist
+              projectId={projectId}
+              stageId={stage.id}
+              track="financial"
+              items={finItems}
+              onItemUpdate={onItemUpdate}
+              onItemAdd={onItemAdd}
+              onItemDelete={onItemDelete}
+              claims={stage.claims ?? []}
+              onClaimAdded={onClaimAdded}
+              onClaimSaved={onClaimSaved}
+              onClaimDeleted={onClaimDeleted}
+            />
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
@@ -569,20 +624,195 @@ function StageCard({
   )
 }
 
+function fieldList(entries: [string, string][]) {
+  return entries.filter(([, v]) => v)
+}
+
+function LegalInfoCard({ project }: { project: Project }) {
+  const fields = fieldList([
+    ['Номер конкурсной заявки', project.competition_application_number],
+    [
+      'Протокол объявления отбора',
+      project.protocol_announce_number ? `№ ${project.protocol_announce_number} от ${formatDate(project.protocol_announce_date)}` : '',
+    ],
+    ['Номер карточки в ЕГИСУ НИОКТР', project.egisu_number],
+    ['КБК', project.kbk],
+    ['Код по КБК', project.kbk_code],
+    ['Код результата', project.result_code],
+    ['ID в мега-таблице', project.external_project_id],
+  ])
+
+  if (!fields.length && !project.result_name) return null
+
+  return (
+    <div>
+      <h3 className="font-display text-base font-semibold text-ink">Юридическая информация</h3>
+      <div className="mt-2 grid grid-cols-1 gap-x-8 gap-y-2 text-xs sm:grid-cols-3">
+        {fields.map(([label, value]) => (
+          <div key={label}>
+            <span className="text-ink-soft">{label}</span>
+            <div className="mt-0.5 text-ink">{value}</div>
+          </div>
+        ))}
+      </div>
+      {project.result_name && <p className="mt-2 text-[11px] text-ink-soft">{project.result_name}</p>}
+    </div>
+  )
+}
+
+function FinancingCard({ payments }: { payments: ProjectPayment[] }) {
+  if (!payments.length) return null
+
+  const byYear = new Map<number, { obligation: number; paid: number; allPaid: boolean }>()
+  for (const p of payments) {
+    const year = p.plan_year ?? 0
+    const cur = byYear.get(year) ?? { obligation: 0, paid: 0, allPaid: true }
+    cur.obligation += Number(p.obligation_amount) || 0
+    cur.paid += Number(p.paid_amount) || 0
+    cur.allPaid = cur.allPaid && p.actually_paid
+    byYear.set(year, cur)
+  }
+  const years = [...byYear.keys()].sort((a, b) => a - b)
+  const totalObligation = payments.reduce((a, p) => a + (Number(p.obligation_amount) || 0), 0)
+  const totalPaid = payments.reduce((a, p) => a + (Number(p.paid_amount) || 0), 0)
+
+  return (
+    <div>
+      <h3 className="font-display text-base font-semibold text-ink">Финансирование</h3>
+      <div className="mt-2 overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="text-left text-ink-soft">
+              <th className="pb-1 pr-6 font-medium">Год</th>
+              <th className="pb-1 pr-6 font-medium">Обязательства</th>
+              <th className="pb-1 pr-6 font-medium">Оплачено</th>
+              <th className="pb-1 font-medium">Статус</th>
+            </tr>
+          </thead>
+          <tbody>
+            {years.map((year) => {
+              const v = byYear.get(year)!
+              return (
+                <tr key={year} className="border-t border-line">
+                  <td className="py-1 pr-6 font-mono text-ink">{year || '—'}</td>
+                  <td className="py-1 pr-6 text-ink">{formatRub(v.obligation)}</td>
+                  <td className="py-1 pr-6 text-ink">{formatRub(v.paid)}</td>
+                  <td className="py-1 text-ink-soft">{v.allPaid ? 'оплачено' : 'ожидается'}</td>
+                </tr>
+              )
+            })}
+            <tr className="border-t border-line font-medium">
+              <td className="py-1 pr-6 text-ink">Итого</td>
+              <td className="py-1 pr-6 text-ink">{formatRub(totalObligation)}</td>
+              <td className="py-1 pr-6 text-ink">{formatRub(totalPaid)}</td>
+              <td className="py-1" />
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function ContactsCard({ project }: { project: Project }) {
+  const fields = fieldList([
+    ['Email организации', project.org_email],
+    ['Email получателя (из договора)', project.grantee_email_from_contract],
+  ])
+
+  if (!fields.length) return null
+
+  return (
+    <div>
+      <h3 className="font-display text-base font-semibold text-ink">Контакты</h3>
+      <div className="mt-2 grid grid-cols-1 gap-x-8 gap-y-2 text-xs sm:grid-cols-3">
+        {fields.map(([label, value]) => (
+          <div key={label}>
+            <span className="text-ink-soft">{label}</span>
+            <div className="mt-0.5 text-ink">{value}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function GrbsCard({ contracts }: { contracts: ProjectContract[] }) {
+  const rows = [...contracts]
+    .filter((c) => c.subsidy_agreement_number || c.subsidy_decision_number || c.subsidy_identifier)
+    .sort((a, b) => (a.contract_year ?? 0) - (b.contract_year ?? 0))
+
+  if (!rows.length) return null
+
+  return (
+    <div>
+      <h3 className="font-display text-base font-semibold text-ink">Информация о ГРБС</h3>
+      <div className="mt-2 space-y-2 text-xs">
+        {rows.map((c) => (
+          <div key={c.id}>
+            <span className="font-medium text-ink">
+              {c.contract_year} ({c.subsidy_ministry || '—'}):
+            </span>{' '}
+            <span className="text-ink-soft">
+              {c.subsidy_agreement_number && `соглашение № ${c.subsidy_agreement_number} от ${formatDate(c.subsidy_agreement_date)}`}
+              {c.subsidy_agreement_number && (c.subsidy_decision_number || c.subsidy_identifier) && ', '}
+              {c.subsidy_decision_number && `решение № ${c.subsidy_decision_number} от ${formatDate(c.subsidy_decision_date)}`}
+              {c.subsidy_decision_number && c.subsidy_identifier && ', '}
+              {c.subsidy_identifier && `идентификатор субсидии ${c.subsidy_identifier}`}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function DataNotesCard({ project }: { project: Project }) {
+  const fields = fieldList([
+    ['Качество данных', project.data_quality_comment],
+    ['Комментарий пользователя', project.user_comment],
+    ['Востребованность', project.demand_comment],
+    ['Финэкспертиза', project.financial_expertise_comment],
+    ['Состояние исполнителя', project.executor_state],
+  ])
+
+  if (!fields.length) return null
+
+  return (
+    <div>
+      <h3 className="font-display text-base font-semibold text-ink">Комментарии по данным</h3>
+      <div className="mt-2 space-y-1.5 text-xs">
+        {fields.map(([label, value]) => (
+          <div key={label}>
+            <span className="text-ink-soft">{label}:</span> <span className="text-ink">{value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function SystemInfoSection({
-  projectId,
+  project,
   contracts,
-  stageNumbers,
+  stages,
   onContractAdded,
   onContractSaved,
+  onClaimAdded,
+  onClaimSaved,
+  onClaimDeleted,
 }: {
-  projectId: string
+  project: Project
   contracts: ProjectContract[]
-  stageNumbers: number[]
+  stages: ProjectStage[]
   onContractAdded: (c: ProjectContract) => void
   onContractSaved: (c: ProjectContract) => void
+  onClaimAdded: (stageId: string, c: ProjectClaim) => void
+  onClaimSaved: (stageId: string, c: ProjectClaim) => void
+  onClaimDeleted: (stageId: string, id: string) => void
 }) {
   const [expanded, setExpanded] = useState(false)
+  const projectId = project.id
 
   return (
     <div className="rounded-2xl border border-line bg-white p-5">
@@ -595,12 +825,33 @@ function SystemInfoSection({
           <ContractsCard
             projectId={projectId}
             contracts={contracts}
-            stageNumbers={stageNumbers}
+            stageNumbers={stages.map((s) => s.stage_number)}
             onAdded={onContractAdded}
             onSaved={onContractSaved}
             bare
           />
-          <p className="text-sm text-ink-soft">Другие поля появятся позже.</p>
+          <LegalInfoCard project={project} />
+          <GrbsCard contracts={contracts} />
+          <FinancingCard payments={project.payments ?? []} />
+          <div>
+            <h3 className="font-display text-base font-semibold text-ink">Требования о возврате</h3>
+            <div className="mt-2 space-y-2">
+              {stages.map((stage) => (
+                <StageClaimsList
+                  key={stage.id}
+                  projectId={projectId}
+                  stageId={stage.id}
+                  stageNumber={stage.stage_number}
+                  claims={stage.claims ?? []}
+                  onAdded={(c) => onClaimAdded(stage.id, c)}
+                  onSaved={(c) => onClaimSaved(stage.id, c)}
+                  onDeleted={(id) => onClaimDeleted(stage.id, id)}
+                />
+              ))}
+            </div>
+          </div>
+          <ContactsCard project={project} />
+          <DataNotesCard project={project} />
         </div>
       )}
     </div>
@@ -718,6 +969,20 @@ export default function ProjectDetail({
     )
   }
 
+  function handleClaimAdded(stageId: string, claim: ProjectClaim) {
+    setStages((prev) => prev.map((s) => (s.id !== stageId ? s : { ...s, claims: [...(s.claims ?? []), claim] })))
+  }
+
+  function handleClaimSaved(stageId: string, claim: ProjectClaim) {
+    setStages((prev) =>
+      prev.map((s) => (s.id !== stageId ? s : { ...s, claims: (s.claims ?? []).map((c) => (c.id === claim.id ? claim : c)) }))
+    )
+  }
+
+  function handleClaimDeleted(stageId: string, claimId: string) {
+    setStages((prev) => prev.map((s) => (s.id !== stageId ? s : { ...s, claims: (s.claims ?? []).filter((c) => c.id !== claimId) })))
+  }
+
   // Этапы после первого незакрытого — «неактивны» (видны, но без чек-листа), пока не закроется предыдущий.
   const firstActiveIndex = stages.findIndex((s) => !isStageClosed(s.checklist_items ?? []))
 
@@ -739,6 +1004,9 @@ export default function ProjectDetail({
               onItemUpdate={(item) => handleItemUpdate(stage.id, item)}
               onItemAdd={(item) => handleItemAdd(stage.id, item)}
               onItemDelete={(itemId) => handleItemDelete(stage.id, itemId)}
+              onClaimAdded={(c) => handleClaimAdded(stage.id, c)}
+              onClaimSaved={(c) => handleClaimSaved(stage.id, c)}
+              onClaimDeleted={(id) => handleClaimDeleted(stage.id, id)}
             />
           ))}
           <AddStageForm projectId={project.id} onAdded={(stage) => setStages((prev) => [...prev, stage])} />
@@ -746,11 +1014,14 @@ export default function ProjectDetail({
       </section>
 
       <SystemInfoSection
-        projectId={project.id}
+        project={project}
         contracts={contracts}
-        stageNumbers={stages.map((s) => s.stage_number)}
+        stages={stages}
         onContractAdded={(c) => setContracts((prev) => [...prev, c])}
         onContractSaved={(c) => setContracts((prev) => prev.map((x) => (x.id === c.id ? c : x)))}
+        onClaimAdded={handleClaimAdded}
+        onClaimSaved={handleClaimSaved}
+        onClaimDeleted={handleClaimDeleted}
       />
 
       <div className="rounded-2xl border border-line bg-white p-5">

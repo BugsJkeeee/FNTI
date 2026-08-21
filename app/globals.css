@@ -73,6 +73,18 @@ body {
   font-family: var(--font-mono);
 }
 
+/* Убирает стрелочки-степпер у number-полей, где ввод по клику вверх/вниз не нужен
+   (например суммы по требованию о возврате). */
+.no-spinner::-webkit-outer-spin-button,
+.no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.no-spinner {
+  -moz-appearance: textfield;
+}
+
 .peek-cat {
   position: fixed;
   right: 0;

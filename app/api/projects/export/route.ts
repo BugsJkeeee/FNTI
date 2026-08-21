@@ -9,6 +9,7 @@ const SELECT = '*, stages:project_stages(*, checklist_items:project_checklist_it
 
 const STATUS_LABEL: Record<Project['status'], string> = {
   active: 'Действующий',
+  terminating: 'Прекращаем',
   terminated: 'Прекращён',
 }
 

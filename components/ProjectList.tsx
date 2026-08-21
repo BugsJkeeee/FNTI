@@ -8,7 +8,14 @@ import HighlightMatch from '@/components/HighlightMatch'
 
 const STATUS_LABEL: Record<Project['status'], string> = {
   active: 'Действующий',
+  terminating: 'Прекращаем',
   terminated: 'Прекращён',
+}
+
+const STATUS_BADGE_CLASS: Record<Project['status'], string> = {
+  active: 'bg-teal-soft text-teal',
+  terminating: 'bg-normal-soft text-normal',
+  terminated: 'bg-urgent-soft text-urgent',
 }
 
 function latestComment(project: Project) {
@@ -190,9 +197,7 @@ function ProjectRow({ project, displayNumber, highlightQuery }: { project: Proje
               ID <HighlightMatch text={String(project.number)} query={highlightQuery} />
             </div>
             <span
-              className={`rounded-full px-1.5 py-0.5 font-mono text-[10px] font-medium leading-none ${
-                project.status === 'terminated' ? 'bg-urgent-soft text-urgent' : 'bg-teal-soft text-teal'
-              }`}
+              className={`rounded-full px-1.5 py-0.5 font-mono text-[10px] font-medium leading-none ${STATUS_BADGE_CLASS[project.status]}`}
             >
               {STATUS_LABEL[project.status]}
             </span>
@@ -323,6 +328,7 @@ export default function ProjectList({ initialProjects }: { initialProjects: Proj
         >
           <option value="">Любой статус</option>
           <option value="active">Действующие</option>
+          <option value="terminating">Прекращаем</option>
           <option value="terminated">Прекращённые</option>
         </select>
         <select

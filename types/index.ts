@@ -86,13 +86,42 @@ export interface Project {
   display_order: number | null
   protocol_number: string
   protocol_date: string | null
-  status: 'active' | 'terminated'
+  status: 'active' | 'terminating' | 'terminated'
   created_by: string | null
   created_at: string
   updated_at: string
+  // Обогащение из мега-таблицы НИОКР (см. private/, вне репозитория)
+  external_project_id: string
+  competition_application_number: string
+  protocol_announce_number: string
+  protocol_announce_date: string | null
+  egisu_number: string
+  kbk: string
+  kbk_code: string
+  result_name: string
+  result_code: string
+  contact_name: string
+  contact_phone: string
+  contact_email: string
+  org_email: string
+  grantee_email_from_contract: string
+  org_contact: string
+  tech_contact: string
+  partner_industrial: string
+  partner_confirming_doc: string
+  partner_co_executors: string
+  partner_other: string
+  partner_source_comment: string
+  data_quality_comment: string
+  user_comment: string
+  demand_comment: string
+  financial_expertise_comment: string
+  executor_state: string
+  source_note: string
   contracts?: ProjectContract[]
   stages?: ProjectStage[]
   comments?: ProjectComment[]
+  payments?: ProjectPayment[]
   comment_count?: number
   has_unread_comment?: boolean
 }
@@ -105,7 +134,39 @@ export interface ProjectContract {
   contract_year: number | null
   stage_number: number | null
   akr: string
+  subsidy_ministry: string
+  subsidy_agreement_number: string
+  subsidy_agreement_date: string | null
+  subsidy_decision_number: string
+  subsidy_decision_date: string | null
+  subsidy_identifier: string
+  additional_agreements: string
   created_at: string
+}
+
+export interface ProjectPayment {
+  id: string
+  project_id: string
+  external_payment_id: string
+  contract_number: string
+  record_type: string
+  period_label: string
+  window_start: string | null
+  window_end: string | null
+  plan_year: number | null
+  actually_paid: boolean
+  payment_request_date: string | null
+  obligation_amount: number | null
+  paid_amount: number | null
+  carry_forward: boolean
+  adjusted_year: number | null
+  forecast_carry_2026_2027: boolean
+  payment_request_number: string
+  payment_request_comment: string
+  source_note: string
+  comment: string
+  created_at: string
+  updated_at: string
 }
 
 export interface ProjectStage {
@@ -121,6 +182,20 @@ export interface ProjectStage {
   created_at: string
   updated_at: string
   checklist_items?: ProjectChecklistItem[]
+  claims?: ProjectClaim[]
+}
+
+export interface ProjectClaim {
+  id: string
+  stage_id: string
+  claim_date: string | null
+  claim_number: string
+  claim_balance: number | null
+  claim_misuse_amount: number | null
+  claim_noncompliance_amount: number | null
+  claim_execution_date: string | null
+  created_at: string
+  updated_at: string
 }
 
 export interface ProjectChecklistItem {

@@ -27,7 +27,8 @@ export const TECHNICAL_TEMPLATE: TemplateStep[] = [
   { template_key: 'tech_3', title: 'Первичная проверка отчетности МФТИ', computeTargetDate: () => null },
   { template_key: 'tech_4', title: 'Открыта контрольная точка по загрузке финального комплекта документации (при необходимости)', computeTargetDate: () => null },
   { template_key: 'tech_5', title: 'Повторная экспертиза отчетности МФТИ', computeTargetDate: () => null },
-  { template_key: 'tech_6', title: 'Результаты утверждены на Грантовой комиссии', computeTargetDate: () => null },
+  { template_key: 'tech_6', title: 'Получено и проверено заключение эксперта', computeTargetDate: () => null },
+  { template_key: 'tech_7', title: 'Результаты утверждены на Грантовой комиссии', computeTargetDate: () => null },
 ]
 
 export const FINANCIAL_TEMPLATE: TemplateStep[] = [
@@ -36,13 +37,14 @@ export const FINANCIAL_TEMPLATE: TemplateStep[] = [
   { template_key: 'fin_3', title: 'Первичная проверка отчетности', computeTargetDate: () => null },
   { template_key: 'fin_4', title: 'Направлены замечания от эксперта — получены пояснения', computeTargetDate: () => null },
   { template_key: 'fin_5', title: 'Повторная экспертиза доработанной отчетности', computeTargetDate: () => null },
-  { template_key: 'fin_6', title: 'Результаты утверждены грантовой комиссией', computeTargetDate: () => null },
-  { template_key: 'fin_7', title: 'Направлено требование о возврате', computeTargetDate: () => null },
-  { template_key: 'fin_8', title: 'Исполнено требование о возврате', computeTargetDate: () => null },
+  { template_key: 'fin_6', title: 'Заключение получено (на внутренней проверке)', computeTargetDate: () => null },
+  { template_key: 'fin_7', title: 'Результаты утверждены Грантовой комиссией', computeTargetDate: () => null },
+  { template_key: 'fin_8', title: 'Направлено требование о возврате (при необходимости)', computeTargetDate: () => null },
+  { template_key: 'fin_9', title: 'Исполнено требование о возврате', computeTargetDate: () => null },
 ]
 
-export const FINAL_TECHNICAL_KEY = 'tech_6'
-export const FINAL_FINANCIAL_KEY = 'fin_8'
+export const FINAL_TECHNICAL_KEY = 'tech_7'
+export const FINAL_FINANCIAL_KEY = 'fin_9'
 
 /** Этап закрыт, когда финальный шаг обоих треков отмечен выполненным. */
 export function isStageClosed(items: { template_key: string | null; done: boolean }[]): boolean {

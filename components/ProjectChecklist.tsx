@@ -1,11 +1,21 @@
 'use client'
 
 import { useState } from 'react'
-import type { ChecklistTrack, ProjectChecklistItem } from '@/types'
+import type { ChecklistTrack, ProjectChecklistItem, ProjectClaim } from '@/types'
+import { ClaimsListInline, SEND_CLAIM_FIELDS, EXECUTION_CLAIM_FIELDS } from '@/components/StageClaimInfo'
 
 const TRACK_LABEL: Record<ChecklistTrack, string> = {
   technical: 'Техническая приёмка',
   financial: 'Финансовая приёмка',
+}
+
+// Пункты фин.чек-листа, к которым привязан список требований о возврате — заполняются прямо
+// здесь, в контексте шага, и тут же видны в Системной информации (та же project_claims,
+// без дублирования данных). "Направлено" — можно добавлять новые требования; "Исполнено" —
+// только проставить дату исполнения уже существующим.
+const CLAIM_MODE_BY_STEP: Record<string, { fieldKeys: typeof SEND_CLAIM_FIELDS; allowAdd: boolean }> = {
+  fin_8: { fieldKeys: SEND_CLAIM_FIELDS, allowAdd: true },
+  fin_9: { fieldKeys: EXECUTION_CLAIM_FIELDS, allowAdd: false },
 }
 
 function ChecklistRow({
@@ -13,14 +23,28 @@ function ChecklistRow({
   onToggle,
   onFieldSave,
   onDelete,
+  projectId,
+  stageId,
+  claims,
+  onClaimAdded,
+  onClaimSaved,
+  onClaimDeleted,
 }: {
   item: ProjectChecklistItem
   onToggle: () => void
   onFieldSave: (patch: { target_date?: string; comment?: string }) => void
   onDelete: () => void
+  projectId?: string
+  stageId?: string
+  claims?: ProjectClaim[]
+  onClaimAdded?: (c: ProjectClaim) => void
+  onClaimSaved?: (c: ProjectClaim) => void
+  onClaimDeleted?: (id: string) => void
 }) {
   const [comment, setComment] = useState(item.comment)
   const [targetDate, setTargetDate] = useState(item.target_date ?? '')
+
+  const claimMode = item.template_key ? CLAIM_MODE_BY_STEP[item.template_key] : undefined
 
   return (
     <div className={`rounded-lg px-1.5 py-1 transition ${item.done ? 'opacity-60' : ''}`}>
@@ -50,6 +74,18 @@ function ChecklistRow({
             rows={1}
             className="mt-0.5 w-full rounded-md border border-line bg-paper px-1.5 py-0.5 text-xs text-ink outline-none focus:border-teal"
           />
+          {claimMode && projectId && stageId && onClaimAdded && onClaimSaved && onClaimDeleted && (
+            <ClaimsListInline
+              projectId={projectId}
+              stageId={stageId}
+              claims={claims ?? []}
+              fieldKeys={claimMode.fieldKeys}
+              allowAdd={claimMode.allowAdd}
+              onAdded={onClaimAdded}
+              onSaved={onClaimSaved}
+              onDeleted={onClaimDeleted}
+            />
+          )}
         </div>
       </div>
     </div>
@@ -66,6 +102,10 @@ export default function ProjectChecklist({
   onItemDelete,
   hideAddForm,
   emptyLabel,
+  claims,
+  onClaimAdded,
+  onClaimSaved,
+  onClaimDeleted,
 }: {
   projectId: string
   stageId: string
@@ -76,6 +116,10 @@ export default function ProjectChecklist({
   onItemDelete: (itemId: string) => void
   hideAddForm?: boolean
   emptyLabel?: string
+  claims?: ProjectClaim[]
+  onClaimAdded?: (c: ProjectClaim) => void
+  onClaimSaved?: (c: ProjectClaim) => void
+  onClaimDeleted?: (id: string) => void
 }) {
   const [newTitle, setNewTitle] = useState('')
   const [adding, setAdding] = useState(false)
@@ -158,6 +202,12 @@ export default function ProjectChecklist({
             onToggle={() => handleToggle(item)}
             onFieldSave={(patch) => handleFieldSave(item, patch)}
             onDelete={() => handleDelete(item)}
+            projectId={projectId}
+            stageId={stageId}
+            claims={claims}
+            onClaimAdded={onClaimAdded}
+            onClaimSaved={onClaimSaved}
+            onClaimDeleted={onClaimDeleted}
           />
         ))}
         {sorted.length === 0 && emptyLabel && <p className="text-xs text-ink-soft">{emptyLabel}</p>}

@@ -13,7 +13,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   const { data: project } = await supabase
     .from('projects')
     .select(
-      '*, contracts:project_contracts(*), stages:project_stages(*, checklist_items:project_checklist_items(*)), comments:project_comments(*, author:employees(id, name))'
+      '*, contracts:project_contracts(*), stages:project_stages(*, checklist_items:project_checklist_items(*), claims:project_claims(*)), comments:project_comments(*, author:employees(id, name)), payments:project_payments(*)'
     )
     .eq('id', id)
     .single()
