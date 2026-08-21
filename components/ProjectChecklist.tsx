@@ -23,18 +23,18 @@ function ChecklistRow({
   const [targetDate, setTargetDate] = useState(item.target_date ?? '')
 
   return (
-    <div className={`rounded-lg p-2 transition ${item.done ? 'opacity-60' : ''}`}>
-      <div className="flex items-start gap-2">
+    <div className={`rounded-lg px-1.5 py-1 transition ${item.done ? 'opacity-60' : ''}`}>
+      <div className="flex items-start gap-1.5">
         <input type="checkbox" checked={item.done} onChange={onToggle} className="mt-0.5" />
         <div className="min-w-0 flex-1">
-          <p className="text-sm text-ink">{item.title}</p>
-          <div className="mt-1 flex flex-wrap items-center gap-2">
+          <p className="text-sm leading-tight text-ink">{item.title}</p>
+          <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
             <input
               type="date"
               value={targetDate}
               onChange={(e) => setTargetDate(e.target.value)}
               onBlur={() => targetDate !== (item.target_date ?? '') && onFieldSave({ target_date: targetDate })}
-              className="rounded-md border border-line bg-paper px-2 py-1 font-mono text-xs text-ink-soft outline-none focus:border-teal"
+              className="rounded-md border border-line bg-paper px-1.5 py-0.5 font-mono text-xs text-ink-soft outline-none focus:border-teal"
             />
             {!item.is_default && (
               <button onClick={onDelete} className="text-xs text-ink-soft transition hover:text-urgent">
@@ -48,7 +48,7 @@ function ChecklistRow({
             onBlur={() => comment !== item.comment && onFieldSave({ comment })}
             placeholder="Комментарий…"
             rows={1}
-            className="mt-1 w-full rounded-md border border-line bg-paper px-2 py-1 text-xs text-ink outline-none focus:border-teal"
+            className="mt-0.5 w-full rounded-md border border-line bg-paper px-1.5 py-0.5 text-xs text-ink outline-none focus:border-teal"
           />
         </div>
       </div>
@@ -150,7 +150,7 @@ export default function ProjectChecklist({
   return (
     <div>
       <h3 className="mb-2 text-sm font-semibold text-ink">{TRACK_LABEL[track]}</h3>
-      <div className="space-y-1">
+      <div className="space-y-0.5">
         {sorted.map((item) => (
           <ChecklistRow
             key={item.id}

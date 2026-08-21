@@ -44,14 +44,11 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const employee = await getCurrentEmployee()
   if (!employee) return NextResponse.json({ error: 'Не авторизован' }, { status: 401 })
 
-  const supabase = await createClient()
-  const { data: project } = await supabase.from('projects').select('created_by').eq('id', id).single()
-  if (!project) return NextResponse.json({ error: 'Проект не найден' }, { status: 404 })
-
-  if (project.created_by !== employee.id && !employee.is_owner) {
-    return NextResponse.json({ error: 'Удалить проект может только его создатель или владелец' }, { status: 403 })
+  if (!employee.is_owner) {
+    return NextResponse.json({ error: 'Удалить проект может только владелец' }, { status: 403 })
   }
 
+  const supabase = await createClient()
   const { error } = await supabase.from('projects').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 

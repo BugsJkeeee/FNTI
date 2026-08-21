@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import type { ChecklistTrack, Employee, Project, ProjectChecklistItem, ProjectContract, ProjectStage } from '@/types'
 import { isStageClosed } from '@/lib/project-checklist-templates'
 import ProjectChecklist from '@/components/ProjectChecklist'
@@ -31,8 +32,27 @@ const HEADER_FIELDS = [
   { key: 'executor_address', label: 'Адрес' },
 ] as const
 
-function ProjectHeader({ project, onSaved }: { project: Project; onSaved: (patch: Partial<Project>) => void }) {
+function ProjectHeader({ project, isOwner, onSaved }: { project: Project; isOwner: boolean; onSaved: (patch: Partial<Project>) => void }) {
+  const router = useRouter()
   const [editing, setEditing] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  async function handleDelete() {
+    if (!confirm('Удалить проект целиком вместе с этапами, чек-листами, договорами и комментариями? Это необратимо.')) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/projects/${project.id}`, { method: 'DELETE' })
+      if (res.ok) {
+        router.push('/projects')
+      } else {
+        const data = await res.json().catch(() => ({}))
+        alert(data.error ?? 'Не удалось удалить проект')
+        setDeleting(false)
+      }
+    } catch {
+      setDeleting(false)
+    }
+  }
   const [values, setValues] = useState<Record<string, string>>(() => ({
     ...Object.fromEntries(HEADER_FIELDS.map((f) => [f.key, project[f.key] ?? ''])),
     protocol_number: project.protocol_number ?? '',
@@ -80,12 +100,23 @@ function ProjectHeader({ project, onSaved }: { project: Project; onSaved: (patch
               </span>
             </div>
           </div>
-          <button
-            onClick={() => setEditing(true)}
-            className="rounded-md border border-line px-3 py-1.5 text-sm text-ink-soft transition hover:border-teal hover:text-teal"
-          >
-            Редактировать
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              onClick={() => setEditing(true)}
+              className="rounded-md border border-line px-3 py-1.5 text-sm text-ink-soft transition hover:border-teal hover:text-teal"
+            >
+              Редактировать
+            </button>
+            {isOwner && (
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="rounded-md border border-line px-3 py-1.5 text-sm text-ink-soft transition hover:border-urgent hover:text-urgent disabled:opacity-50"
+              >
+                {deleting ? 'Удаляю…' : 'Удалить проект'}
+              </button>
+            )}
+          </div>
         </div>
         <p className="mt-3 text-sm text-ink">{project.topic || '—'}</p>
         <div className="mt-4 grid grid-cols-1 gap-3 text-xs sm:grid-cols-3">
@@ -178,21 +209,91 @@ function ProjectHeader({ project, onSaved }: { project: Project; onSaved: (patch
   )
 }
 
+function ContractRow({ projectId, contract, onSaved }: { projectId: string; contract: ProjectContract; onSaved: (c: ProjectContract) => void }) {
+  const [editing, setEditing] = useState(false)
+  const [akr, setAkr] = useState(contract.akr)
+  const [saving, setSaving] = useState(false)
+
+  function startEditing() {
+    setAkr(contract.akr)
+    setEditing(true)
+  }
+
+  async function saveAkr() {
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/projects/${projectId}/contracts/${contract.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ akr }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        onSaved(data)
+        setEditing(false)
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <li className="flex flex-wrap items-center gap-2">
+      <span className="font-mono text-xs text-ink-soft">
+        {contract.contract_number} от {formatDate(contract.contract_date)}{' '}
+        {contract.stage_number ? `(этап ${contract.stage_number})` : contract.contract_year ? `(${contract.contract_year})` : ''}
+      </span>
+      {editing ? (
+        <>
+          <input
+            value={akr}
+            onChange={(e) => setAkr(e.target.value.replace(/\D/g, '').slice(0, 8))}
+            inputMode="numeric"
+            maxLength={8}
+            placeholder="АКР"
+            autoFocus
+            className="w-24 rounded-md border border-line bg-paper px-2 py-1 font-mono text-xs text-ink outline-none focus:border-teal"
+          />
+          <button
+            onClick={saveAkr}
+            disabled={saving}
+            className="rounded-md border border-line px-2 py-1 text-xs text-ink-soft transition hover:border-teal hover:text-teal disabled:opacity-50"
+          >
+            {saving ? 'Сохраняю…' : 'Сохранить'}
+          </button>
+          <button onClick={() => setEditing(false)} className="text-xs text-ink-soft hover:text-ink">Отмена</button>
+        </>
+      ) : contract.akr ? (
+        <button onClick={startEditing} className="font-mono text-xs text-ink-soft transition hover:text-teal">
+          АКР: {contract.akr}
+        </button>
+      ) : (
+        <button onClick={startEditing} className="text-xs text-teal hover:opacity-80">+ добавить АКР</button>
+      )}
+    </li>
+  )
+}
+
 function ContractsCard({
   projectId,
   contracts,
   stageNumbers,
   onAdded,
+  onSaved,
+  bare,
 }: {
   projectId: string
   contracts: ProjectContract[]
   stageNumbers: number[]
   onAdded: (c: ProjectContract) => void
+  onSaved: (c: ProjectContract) => void
+  bare?: boolean
 }) {
   const [adding, setAdding] = useState(false)
   const [number, setNumber] = useState('')
   const [date, setDate] = useState('')
   const [stageNumber, setStageNumber] = useState(stageNumbers[0]?.toString() ?? '1')
+  const [akr, setAkr] = useState('')
   const [saving, setSaving] = useState(false)
 
   async function handleAdd(e: React.FormEvent) {
@@ -203,13 +304,14 @@ function ContractsCard({
       const res = await fetch(`/api/projects/${projectId}/contracts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contract_number: number, contract_date: date || null, stage_number: stageNumber ? Number(stageNumber) : null }),
+        body: JSON.stringify({ contract_number: number, contract_date: date || null, stage_number: stageNumber ? Number(stageNumber) : null, akr }),
       })
       const data = await res.json()
       if (res.ok) {
         onAdded(data)
         setNumber('')
         setDate('')
+        setAkr('')
         setAdding(false)
       }
     } finally {
@@ -218,17 +320,14 @@ function ContractsCard({
   }
 
   return (
-    <div className="rounded-2xl border border-line bg-white p-5">
+    <div className={bare ? '' : 'rounded-2xl border border-line bg-white p-5'}>
       <h2 className="font-display text-base font-semibold text-ink">Договоры</h2>
       {contracts.length === 0 ? (
         <p className="mt-2 text-sm text-ink-soft">Договоров пока нет.</p>
       ) : (
-        <ul className="mt-2 space-y-1 font-mono text-xs text-ink-soft">
+        <ul className="mt-2 space-y-1.5">
           {contracts.map((c) => (
-            <li key={c.id}>
-              {c.contract_number} от {formatDate(c.contract_date)}{' '}
-              {c.stage_number ? `(этап ${c.stage_number})` : c.contract_year ? `(${c.contract_year})` : ''}
-            </li>
+            <ContractRow key={c.id} projectId={projectId} contract={c} onSaved={onSaved} />
           ))}
         </ul>
       )}
@@ -246,6 +345,14 @@ function ContractsCard({
               <option key={n} value={n}>Этап {n}</option>
             ))}
           </select>
+          <input
+            value={akr}
+            onChange={(e) => setAkr(e.target.value.replace(/\D/g, '').slice(0, 8))}
+            inputMode="numeric"
+            maxLength={8}
+            placeholder="АКР"
+            className="w-28 rounded-lg border border-line bg-paper px-2.5 py-1.5 text-xs outline-none focus:border-teal"
+          />
           <button type="submit" disabled={saving} className="rounded-lg border border-line px-2.5 py-1.5 text-xs text-ink-soft transition hover:border-teal hover:text-teal disabled:opacity-50">
             {saving ? 'Добавляю…' : 'Добавить'}
           </button>
@@ -462,6 +569,44 @@ function StageCard({
   )
 }
 
+function SystemInfoSection({
+  projectId,
+  contracts,
+  stageNumbers,
+  onContractAdded,
+  onContractSaved,
+}: {
+  projectId: string
+  contracts: ProjectContract[]
+  stageNumbers: number[]
+  onContractAdded: (c: ProjectContract) => void
+  onContractSaved: (c: ProjectContract) => void
+}) {
+  const [expanded, setExpanded] = useState(false)
+
+  return (
+    <div className="rounded-2xl border border-line bg-white p-5">
+      <button onClick={() => setExpanded((e) => !e)} className="flex w-full items-center justify-between text-left">
+        <h2 className="font-display text-base font-semibold text-ink">Системная информация</h2>
+        <span className="text-xs text-ink-soft">{expanded ? 'Свернуть' : 'Развернуть'}</span>
+      </button>
+      {expanded && (
+        <div className="mt-3 space-y-4">
+          <ContractsCard
+            projectId={projectId}
+            contracts={contracts}
+            stageNumbers={stageNumbers}
+            onAdded={onContractAdded}
+            onSaved={onContractSaved}
+            bare
+          />
+          <p className="text-sm text-ink-soft">Другие поля появятся позже.</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function AddStageForm({ projectId, onAdded }: { projectId: string; onAdded: (stage: ProjectStage) => void }) {
   const [expanded, setExpanded] = useState(false)
   const [startDate, setStartDate] = useState('')
@@ -578,14 +723,7 @@ export default function ProjectDetail({
 
   return (
     <div className="space-y-6">
-      <ProjectHeader project={project} onSaved={(patch) => setProject((p) => ({ ...p, ...patch }))} />
-
-      <ContractsCard
-        projectId={project.id}
-        contracts={contracts}
-        stageNumbers={stages.map((s) => s.stage_number)}
-        onAdded={(c) => setContracts((prev) => [...prev, c])}
-      />
+      <ProjectHeader project={project} isOwner={currentEmployee.is_owner} onSaved={(patch) => setProject((p) => ({ ...p, ...patch }))} />
 
       <section>
         <h2 className="mb-3 font-display text-base font-semibold text-ink">Этапы</h2>
@@ -606,6 +744,14 @@ export default function ProjectDetail({
           <AddStageForm projectId={project.id} onAdded={(stage) => setStages((prev) => [...prev, stage])} />
         </div>
       </section>
+
+      <SystemInfoSection
+        projectId={project.id}
+        contracts={contracts}
+        stageNumbers={stages.map((s) => s.stage_number)}
+        onContractAdded={(c) => setContracts((prev) => [...prev, c])}
+        onContractSaved={(c) => setContracts((prev) => prev.map((x) => (x.id === c.id ? c : x)))}
+      />
 
       <div className="rounded-2xl border border-line bg-white p-5">
         <ProjectComments projectId={project.id} initialComments={initialProject.comments ?? []} currentEmployee={currentEmployee} />

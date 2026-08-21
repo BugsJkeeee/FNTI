@@ -62,6 +62,7 @@ export async function GET() {
       const c = contracts[i]
       contractColumns[`Договор ${i + 1} — номер`] = c?.contract_number ?? ''
       contractColumns[`Договор ${i + 1} — дата`] = formatDate(c?.contract_date ?? null)
+      contractColumns[`Договор ${i + 1} — АКР`] = c?.akr ?? ''
     }
 
     const stageColumns: Record<string, string | number> = {}

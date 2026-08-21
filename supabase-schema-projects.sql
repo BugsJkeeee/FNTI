@@ -34,6 +34,7 @@ create table project_contracts (
   contract_date date,
   contract_year int,       -- старые импортированные договоры (год); новые заполняют stage_number
   stage_number int,        -- этап проекта, который финансирует договор
+  akr text not null default '' check (akr ~ '^[0-9]{0,8}$'), -- Аналитический код раздела — только цифры, не более 8
   created_at timestamptz not null default now()
 );
 
@@ -135,8 +136,8 @@ alter table project_views enable row level security;
 create policy "projects_select_all" on projects for select using (auth.role() = 'authenticated');
 create policy "projects_insert_all" on projects for insert with check (auth.role() = 'authenticated' and created_by = auth.uid());
 create policy "projects_update_all" on projects for update using (auth.role() = 'authenticated') with check (true);
-create policy "projects_delete_creator_or_owner" on projects for delete using (
-  auth.uid() = created_by or exists (select 1 from employees e where e.id = auth.uid() and e.is_owner)
+create policy "projects_delete_owner_only" on projects for delete using (
+  exists (select 1 from employees e where e.id = auth.uid() and e.is_owner)
 );
 
 create policy "contracts_select_all" on project_contracts for select using (auth.role() = 'authenticated');

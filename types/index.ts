@@ -104,6 +104,7 @@ export interface ProjectContract {
   contract_date: string | null
   contract_year: number | null
   stage_number: number | null
+  akr: string
   created_at: string
 }
 

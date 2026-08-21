@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import type { Project } from '@/types'
 import { currentStageOf, trackStatus } from '@/lib/project-status'
+import HighlightMatch from '@/components/HighlightMatch'
 
 const STATUS_LABEL: Record<Project['status'], string> = {
   active: 'Действующий',
@@ -148,7 +149,7 @@ function AddProjectForm({ onCreated }: { onCreated: () => void }) {
   )
 }
 
-function ProjectRow({ project, displayNumber }: { project: Project; displayNumber: number }) {
+function ProjectRow({ project, displayNumber, highlightQuery }: { project: Project; displayNumber: number; highlightQuery: string }) {
   const stage = currentStageOf(project)
   const tech = trackStatus(stage, 'technical')
   const fin = trackStatus(stage, 'financial')
@@ -156,12 +157,27 @@ function ProjectRow({ project, displayNumber }: { project: Project; displayNumbe
   const stages = project.stages ?? []
   const dormant = stages.length > 0 && tech.planned && fin.planned
 
+  // Поиск также ищет по теме и полному наименованию исполнителя, но они не показаны в строке —
+  // если совпадение только там, подсказываем, где именно нашлось, иначе непонятно, почему проект в выдаче.
+  const q = highlightQuery.trim().toLowerCase()
+  const visibleMatch =
+    !!q &&
+    (String(project.number).includes(q) || project.code.toLowerCase().includes(q) || project.executor_short.toLowerCase().includes(q))
+  const hiddenMatch =
+    q && !visibleMatch
+      ? project.topic.toLowerCase().includes(q)
+        ? { label: 'Тема', text: project.topic }
+        : project.executor_full.toLowerCase().includes(q)
+          ? { label: 'Исполнитель', text: project.executor_full }
+          : null
+      : null
+
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2">
       <div className="w-6 shrink-0 text-right font-mono text-xs text-ink-soft">{displayNumber}</div>
       <Link
         href={`/projects/${project.id}`}
-        className={`relative grid flex-1 grid-cols-1 items-center gap-3 rounded-2xl border p-4 transition sm:grid-cols-4 ${
+        className={`relative grid flex-1 grid-cols-1 items-center gap-2 rounded-xl border p-2.5 transition sm:grid-cols-[0.9fr_1.3fr_1.3fr_1fr] ${
           dormant ? 'border-line bg-paper opacity-70 hover:border-ink-soft' : 'border-line bg-white hover:border-teal'
         }`}
       >
@@ -170,31 +186,42 @@ function ProjectRow({ project, displayNumber }: { project: Project; displayNumbe
         )}
         <div>
           <div className="flex items-center gap-1.5">
-            <div className="font-mono text-[11px] text-ink-soft">ID {project.number}</div>
+            <div className="font-mono text-[11px] text-ink-soft">
+              ID <HighlightMatch text={String(project.number)} query={highlightQuery} />
+            </div>
             <span
-              className={`rounded-full px-1.5 py-0.5 font-mono text-[10px] font-medium ${
+              className={`rounded-full px-1.5 py-0.5 font-mono text-[10px] font-medium leading-none ${
                 project.status === 'terminated' ? 'bg-urgent-soft text-urgent' : 'bg-teal-soft text-teal'
               }`}
             >
               {STATUS_LABEL[project.status]}
             </span>
           </div>
-          <div className="mt-0.5 text-sm font-semibold text-ink">{project.code}</div>
-          <div className="mt-0.5 text-xs text-ink-soft">Исполнитель: {project.executor_short || '—'}</div>
+          <div className="text-sm font-semibold leading-tight text-ink">
+            <HighlightMatch text={project.code} query={highlightQuery} />
+          </div>
+          <div className="text-xs leading-tight text-ink-soft">
+            Исполнитель: <HighlightMatch text={project.executor_short || '—'} query={highlightQuery} />
+          </div>
+          {hiddenMatch && (
+            <div className="line-clamp-1 text-[11px] leading-tight text-ink-soft">
+              {hiddenMatch.label}: <HighlightMatch text={hiddenMatch.text} query={highlightQuery} />
+            </div>
+          )}
         </div>
         <div>
           <div className="text-[11px] text-ink-soft">Техническая приёмка</div>
-          <div className={`mt-0.5 text-sm ${tech.overdue ? 'font-medium text-overdue' : tech.planned ? 'text-ink-soft' : 'text-ink'}`}>
+          <div className={`text-sm leading-tight ${tech.overdue ? 'font-medium text-overdue' : tech.planned ? 'text-ink-soft' : 'text-ink'}`}>
             {stages.length ? (tech.planned ? tech.text : `Этап ${stage?.stage_number} · ${tech.text}`) : '—'}
           </div>
         </div>
         <div>
           <div className="text-[11px] text-ink-soft">Финансовая приёмка</div>
-          <div className={`mt-0.5 text-sm ${fin.overdue ? 'font-medium text-overdue' : fin.planned ? 'text-ink-soft' : 'text-ink'}`}>
+          <div className={`text-sm leading-tight ${fin.overdue ? 'font-medium text-overdue' : fin.planned ? 'text-ink-soft' : 'text-ink'}`}>
             {stages.length ? (fin.planned ? fin.text : `Этап ${stage?.stage_number} · ${fin.text}`) : '—'}
           </div>
         </div>
-        <div className="border-t border-line pt-3 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-4">
+        <div className="border-t border-line pt-2 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-3">
           <div className="flex items-center gap-1.5 text-[11px] text-ink-soft">
             <span>Мнение Фонда НТИ</span>
             {!!project.comment_count && (
@@ -206,7 +233,7 @@ function ProjectRow({ project, displayNumber }: { project: Project; displayNumbe
               </span>
             )}
           </div>
-          <div className="mt-0.5 line-clamp-2 text-sm text-ink">
+          <div className="line-clamp-1 text-sm leading-tight text-ink">
             {comment ? `«${comment.text}» — ${comment.author?.name ?? '—'}` : <span className="text-ink-soft">нет комментариев</span>}
           </div>
         </div>
@@ -220,6 +247,7 @@ export default function ProjectList({ initialProjects }: { initialProjects: Proj
   const [query, setQuery] = useState('')
   const [waveFilter, setWaveFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
+  const [directionFilter, setDirectionFilter] = useState('')
 
   async function refresh() {
     const res = await fetch('/api/projects')
@@ -227,12 +255,17 @@ export default function ProjectList({ initialProjects }: { initialProjects: Proj
   }
 
   const waves = useMemo(() => [...new Set(projects.map((p) => p.wave))].sort((a, b) => a - b), [projects])
+  const directions = useMemo(
+    () => [...new Set(projects.map((p) => p.tech_direction).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ru')),
+    [projects]
+  )
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return projects.filter((p) => {
       if (waveFilter && String(p.wave) !== waveFilter) return false
       if (statusFilter && p.status !== statusFilter) return false
+      if (directionFilter && p.tech_direction !== directionFilter) return false
       if (!q) return true
       return (
         String(p.number).includes(q) ||
@@ -242,7 +275,7 @@ export default function ProjectList({ initialProjects }: { initialProjects: Proj
         p.executor_full.toLowerCase().includes(q)
       )
     })
-  }, [projects, query, waveFilter, statusFilter])
+  }, [projects, query, waveFilter, statusFilter, directionFilter])
 
   const byWave = useMemo(() => {
     const map = new Map<number, Project[]>()
@@ -263,26 +296,20 @@ export default function ProjectList({ initialProjects }: { initialProjects: Proj
   }, [projects])
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-3">
       <AddProjectForm onCreated={refresh} />
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-1.5">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Поиск по ID, шифру, теме, исполнителю…"
-          className="min-w-[240px] flex-1 rounded-lg border border-line bg-white px-3 py-1.5 text-sm outline-none focus:border-teal"
+          className="min-w-[200px] flex-[2] rounded-lg border border-line bg-white px-2.5 py-1 text-sm outline-none focus:border-teal"
         />
-        <Link
-          href="/api/projects/export"
-          className="rounded-lg border border-line bg-white px-3 py-1.5 text-sm text-ink-soft transition hover:border-teal hover:text-teal"
-        >
-          Экспорт в Excel
-        </Link>
         <select
           value={waveFilter}
           onChange={(e) => setWaveFilter(e.target.value)}
-          className="rounded-lg border border-line bg-white px-3 py-1.5 text-sm outline-none focus:border-teal"
+          className="min-w-0 flex-1 rounded-lg border border-line bg-white px-2.5 py-1 text-sm outline-none focus:border-teal"
         >
           <option value="">Все волны</option>
           {waves.map((w) => (
@@ -292,12 +319,28 @@ export default function ProjectList({ initialProjects }: { initialProjects: Proj
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-lg border border-line bg-white px-3 py-1.5 text-sm outline-none focus:border-teal"
+          className="min-w-0 flex-1 rounded-lg border border-line bg-white px-2.5 py-1 text-sm outline-none focus:border-teal"
         >
           <option value="">Любой статус</option>
           <option value="active">Действующие</option>
           <option value="terminated">Прекращённые</option>
         </select>
+        <select
+          value={directionFilter}
+          onChange={(e) => setDirectionFilter(e.target.value)}
+          className="min-w-0 flex-1 rounded-lg border border-line bg-white px-2.5 py-1 text-sm outline-none focus:border-teal"
+        >
+          <option value="">Все направления</option>
+          {directions.map((d) => (
+            <option key={d} value={d}>{d}</option>
+          ))}
+        </select>
+        <Link
+          href="/api/projects/export"
+          className="min-w-0 flex-1 rounded-lg border border-line bg-white px-2.5 py-1 text-center text-sm text-ink-soft transition hover:border-teal hover:text-teal"
+        >
+          Экспорт в Excel
+        </Link>
       </div>
 
       {byWave.map(([wave, waveProjects]) => (
@@ -305,7 +348,7 @@ export default function ProjectList({ initialProjects }: { initialProjects: Proj
           <h2 className="mb-3 font-display text-base font-semibold text-ink">{wave} волна</h2>
           <div className="space-y-3">
             {waveProjects.map((p) => (
-              <ProjectRow key={p.id} project={p} displayNumber={displayNumbers.get(p.id) ?? 0} />
+              <ProjectRow key={p.id} project={p} displayNumber={displayNumbers.get(p.id) ?? 0} highlightQuery={query} />
             ))}
           </div>
         </section>
