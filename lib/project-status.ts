@@ -23,7 +23,15 @@ export function trackStatus(stage: ProjectStage | null, track: ChecklistTrack) {
     .filter((i) => i.track === track)
     .sort((a, b) => a.step_order - b.step_order)
   const next = items.find((i) => !i.done)
-  if (!next) return { text: items.length ? 'Все шаги выполнены' : '—', overdue: false, planned: false }
+  if (!next) {
+    if (items.length === 0) return { text: '—', overdue: false, planned: false }
+    // Все шаги выполнены — вместо общей фразы показываем сам последний шаг: его название,
+    // дату (если проставлена) и комментарий (если есть) — так в списке сразу видно, чем
+    // закрылась приёмка, а не просто факт "выполнено".
+    const last = items[items.length - 1]
+    const text = `${last.title}${last.target_date ? ` · ${formatDate(last.target_date)}` : ''}${last.comment ? ` — ${last.comment}` : ''}`
+    return { text, overdue: false, planned: false }
+  }
   const today = new Date().toLocaleDateString('en-CA')
   if (next.target_date && next.target_date > today) {
     return { text: `Подача ${TRACK_NOUN[track]} запланирована на ${formatDate(next.target_date)}`, overdue: false, planned: true }

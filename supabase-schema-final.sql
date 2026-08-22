@@ -227,6 +227,10 @@ create table project_claims (
   claim_misuse_amount numeric(14,2),
   claim_noncompliance_amount numeric(14,2),
   claim_execution_date date,
+  -- возврат может прийти несколькими платежами, каждый со своей датой: [{"date": "YYYY-MM-DD", "amount": 123.45}, ...].
+  -- claim_execution_date выше дублирует дату первого платежа (для уже существующей логики
+  -- дайджеста/ИИ-команд, которые ищут "ещё не исполненные" требования по этому полю).
+  claim_execution_payments jsonb not null default '[]',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

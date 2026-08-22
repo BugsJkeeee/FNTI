@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentEmployee } from '@/lib/current-employee'
 
-const CLAIM_FIELDS = ['claim_date', 'claim_number', 'claim_balance', 'claim_misuse_amount', 'claim_noncompliance_amount', 'claim_execution_date'] as const
+const CLAIM_FIELDS = ['claim_date', 'claim_number', 'claim_balance', 'claim_misuse_amount', 'claim_noncompliance_amount', 'claim_execution_date', 'claim_execution_payments'] as const
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ claimId: string }> }) {
   const { claimId } = await params

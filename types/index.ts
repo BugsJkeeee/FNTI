@@ -194,6 +194,7 @@ export interface ProjectClaim {
   claim_misuse_amount: number | null
   claim_noncompliance_amount: number | null
   claim_execution_date: string | null
+  claim_execution_payments: { date: string | null; amount: number }[]
   created_at: string
   updated_at: string
 }

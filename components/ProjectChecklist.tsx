@@ -12,10 +12,11 @@ const TRACK_LABEL: Record<ChecklistTrack, string> = {
 // Пункты фин.чек-листа, к которым привязан список требований о возврате — заполняются прямо
 // здесь, в контексте шага, и тут же видны в Системной информации (та же project_claims,
 // без дублирования данных). "Направлено" — можно добавлять новые требования; "Исполнено" —
-// только проставить дату исполнения уже существующим.
-const CLAIM_MODE_BY_STEP: Record<string, { fieldKeys: typeof SEND_CLAIM_FIELDS; allowAdd: boolean }> = {
+// только проставить дату и сумму(ы) исполнения уже существующим (возврат может прийти
+// несколькими платежами — executionMode включает соответствующий UI).
+const CLAIM_MODE_BY_STEP: Record<string, { fieldKeys: typeof SEND_CLAIM_FIELDS; allowAdd: boolean; executionMode?: boolean }> = {
   fin_8: { fieldKeys: SEND_CLAIM_FIELDS, allowAdd: true },
-  fin_9: { fieldKeys: EXECUTION_CLAIM_FIELDS, allowAdd: false },
+  fin_9: { fieldKeys: EXECUTION_CLAIM_FIELDS, allowAdd: false, executionMode: true },
 }
 
 function ChecklistRow({
@@ -81,6 +82,7 @@ function ChecklistRow({
               claims={claims ?? []}
               fieldKeys={claimMode.fieldKeys}
               allowAdd={claimMode.allowAdd}
+              executionMode={claimMode.executionMode}
               onAdded={onClaimAdded}
               onSaved={onClaimSaved}
               onDeleted={onClaimDeleted}

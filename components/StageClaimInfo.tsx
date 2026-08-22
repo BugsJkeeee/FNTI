@@ -33,7 +33,7 @@ const SUM_FIELD_KEYS: ClaimFieldKey[] = ['claim_balance', 'claim_misuse_amount',
 export const SEND_CLAIM_FIELDS: ClaimFieldKey[] = ['claim_date', 'claim_number', 'claim_balance', 'claim_misuse_amount', 'claim_noncompliance_amount']
 export const EXECUTION_CLAIM_FIELDS: ClaimFieldKey[] = ['claim_execution_date']
 const DISPLAY_HEAD_KEYS: ClaimFieldKey[] = ['claim_date', 'claim_number']
-const DISPLAY_TAIL_KEYS: ClaimFieldKey[] = ['claim_balance', 'claim_misuse_amount', 'claim_noncompliance_amount', 'claim_execution_date']
+const DISPLAY_TAIL_KEYS: ClaimFieldKey[] = ['claim_balance', 'claim_misuse_amount', 'claim_noncompliance_amount']
 
 // Только цифры и одна десятичная точка — отрицательные суммы по требованию о возврате не бывают.
 function sanitizeNumberInput(raw: string) {
@@ -172,10 +172,115 @@ function CompactClaimRow({
   )
 }
 
+type ExecutionPayment = { date: string; amount: string }
+
+/**
+ * Строка «Исполнено требование о возврате»: список платежей (дата + сумма каждый). Возврат иногда
+ * приходит несколькими платежами на разные даты — первый платёж по умолчанию предзаполнен итогом
+ * требования, «+ платёж» добавляет ещё одну пару дата/сумма, дальше сотрудник сам их проставляет.
+ */
+function ExecutionRow({
+  projectId,
+  stageId,
+  claim,
+  onSaved,
+}: {
+  projectId: string
+  stageId: string
+  claim: ProjectClaim
+  onSaved: (c: ProjectClaim) => void
+}) {
+  const totalRequired = sumOf(valuesFromClaim(claim, SUM_FIELD_KEYS))
+  const [payments, setPayments] = useState<ExecutionPayment[]>(() =>
+    claim.claim_execution_payments.length > 0
+      ? claim.claim_execution_payments.map((p) => ({ date: p.date ?? '', amount: String(p.amount) }))
+      : [{ date: claim.claim_execution_date ?? '', amount: totalRequired ? String(totalRequired) : '' }]
+  )
+  const [dirty, setDirty] = useState(false)
+  const [saving, setSaving] = useState(false)
+
+  function setPaymentField(i: number, field: 'date' | 'amount', value: string) {
+    const clean = field === 'amount' ? sanitizeNumberInput(value) : value
+    setPayments((p) => p.map((row, idx) => (idx === i ? { ...row, [field]: clean } : row)))
+    setDirty(true)
+  }
+
+  async function save() {
+    setSaving(true)
+    try {
+      const cleanPayments = payments
+        .filter((p) => p.date || p.amount)
+        .map((p) => ({ date: p.date || null, amount: p.amount ? Number(p.amount) : 0 }))
+      const data = await updateClaim(projectId, stageId, claim.id, {
+        claim_execution_date: cleanPayments[0]?.date ?? null,
+        claim_execution_payments: cleanPayments,
+      })
+      if (data) {
+        onSaved(data)
+        setDirty(false)
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {payments.map((p, i) => (
+        <span key={i} className="flex items-center gap-0.5">
+          <input
+            type="date"
+            value={p.date}
+            onChange={(e) => setPaymentField(i, 'date', e.target.value)}
+            className="rounded-md border border-line bg-paper px-1.5 py-0.5 font-mono text-xs text-ink-soft outline-none focus:border-teal"
+          />
+          <input
+            type="number"
+            min={0}
+            placeholder="Сумма возврата, руб."
+            value={p.amount}
+            onChange={(e) => setPaymentField(i, 'amount', e.target.value)}
+            className="no-spinner w-32 rounded-md border border-line bg-paper px-1.5 py-0.5 text-xs text-ink-soft outline-none focus:border-teal"
+          />
+          {payments.length > 1 && (
+            <button
+              onClick={() => {
+                setPayments((arr) => arr.filter((_, idx) => idx !== i))
+                setDirty(true)
+              }}
+              className="text-xs text-ink-soft hover:text-urgent"
+            >
+              ×
+            </button>
+          )}
+        </span>
+      ))}
+      <button
+        onClick={() => {
+          setPayments((p) => [...p, { date: '', amount: '' }])
+          setDirty(true)
+        }}
+        className="text-xs text-teal hover:opacity-80"
+      >
+        + платёж
+      </button>
+      {dirty && (
+        <button
+          onClick={save}
+          disabled={saving}
+          className="rounded-md border border-line px-2 py-0.5 text-xs text-ink-soft transition hover:border-teal hover:text-teal disabled:opacity-50"
+        >
+          {saving ? '…' : 'OK'}
+        </button>
+      )}
+    </div>
+  )
+}
+
 /**
  * Список требований по этапу в компактном виде — под конкретным пунктом чек-листа.
  * allowAdd — можно ли добавить новое требование отсюда (да под «Направлено», нет под «Исполнено»,
- * там просто проставляют дату исполнения уже существующим требованиям).
+ * там просто проставляют дату/сумму исполнения уже существующим требованиям).
  */
 export function ClaimsListInline({
   projectId,
@@ -183,6 +288,7 @@ export function ClaimsListInline({
   claims,
   fieldKeys,
   allowAdd,
+  executionMode,
   onAdded,
   onSaved,
   onDeleted,
@@ -192,6 +298,7 @@ export function ClaimsListInline({
   claims: ProjectClaim[]
   fieldKeys: ClaimFieldKey[]
   allowAdd: boolean
+  executionMode?: boolean
   onAdded: (c: ProjectClaim) => void
   onSaved: (c: ProjectClaim) => void
   onDeleted: (id: string) => void
@@ -203,17 +310,21 @@ export function ClaimsListInline({
       {claims.length === 0 && !adding && (
         <p className="text-xs text-ink-soft">{allowAdd ? 'Требований пока нет.' : 'Нет требований для исполнения.'}</p>
       )}
-      {claims.map((c) => (
-        <CompactClaimRow
-          key={c.id}
-          projectId={projectId}
-          stageId={stageId}
-          claim={c}
-          fieldKeys={fieldKeys}
-          onSaved={onSaved}
-          onDeleted={allowAdd ? () => deleteClaim(projectId, stageId, c.id).then((ok) => ok && onDeleted(c.id)) : undefined}
-        />
-      ))}
+      {claims.map((c) =>
+        executionMode ? (
+          <ExecutionRow key={c.id} projectId={projectId} stageId={stageId} claim={c} onSaved={onSaved} />
+        ) : (
+          <CompactClaimRow
+            key={c.id}
+            projectId={projectId}
+            stageId={stageId}
+            claim={c}
+            fieldKeys={fieldKeys}
+            onSaved={onSaved}
+            onDeleted={allowAdd ? () => deleteClaim(projectId, stageId, c.id).then((ok) => ok && onDeleted(c.id)) : undefined}
+          />
+        )
+      )}
       {adding && (
         <CompactClaimRow
           projectId={projectId}
@@ -316,7 +427,19 @@ function ClaimCard({
           </div>
         </div>
         <div className="mt-2 border-t border-line pt-1.5 text-xs text-ink-soft">
-          Дата исполнения: {formatDate(claim.claim_execution_date)}
+          {claim.claim_execution_payments.length === 0 && <>Дата исполнения: {formatDate(claim.claim_execution_date)}</>}
+          {claim.claim_execution_payments.length === 1 && (
+            <>
+              Дата исполнения: {formatDate(claim.claim_execution_payments[0].date)} · Сумма возврата:{' '}
+              {formatRub(claim.claim_execution_payments[0].amount)}
+            </>
+          )}
+          {claim.claim_execution_payments.length > 1 && (
+            <>
+              Исполнено платежами: {claim.claim_execution_payments.map((p) => `${formatDate(p.date)} — ${formatRub(p.amount)}`).join('; ')}
+              {' '}(итого {formatRub(claim.claim_execution_payments.reduce((s, p) => s + p.amount, 0))})
+            </>
+          )}
         </div>
       </div>
     )
