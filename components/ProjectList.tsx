@@ -5,6 +5,7 @@ import Link from 'next/link'
 import type { Project } from '@/types'
 import { currentStageOf, trackStatus } from '@/lib/project-status'
 import HighlightMatch from '@/components/HighlightMatch'
+import ReconcileMegaButton from '@/components/ReconcileMegaButton'
 
 const STATUS_LABEL: Record<Project['status'], string> = {
   active: 'Действующий',
@@ -347,6 +348,7 @@ export default function ProjectList({ initialProjects }: { initialProjects: Proj
         >
           Экспорт в Excel (мегатаблица)
         </Link>
+        <ReconcileMegaButton />
       </div>
 
       {byWave.map(([wave, waveProjects]) => (

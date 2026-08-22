@@ -16,6 +16,20 @@ type NeedsChoice = {
   suggested_text: string
   candidates: { id: string; text: string }[]
 }
+type ProjectCommentPosted = { type: 'project_comment_posted'; project_id: string; project_code: string; comment_text: string }
+type ProjectUpdated = {
+  type: 'project_updated'
+  project_id: string
+  project_code: string
+  field: string
+  step_title: string
+  new_value: string
+}
+type ProjectSummary = {
+  type: 'project_summary'
+  summaries: { project_id: string; project_code: string; text: string }[]
+  reason: string
+}
 
 function fieldLabel(field: TaskUpdatedField, value: string) {
   if (field === 'deadline') return `срок → ${new Date(value).toLocaleDateString('ru-RU')}`
@@ -31,7 +45,7 @@ export default function AiCommandBox() {
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [result, setResult] = useState<CommentPosted | TaskUpdated | null>(null)
+  const [result, setResult] = useState<CommentPosted | TaskUpdated | ProjectCommentPosted | ProjectUpdated | ProjectSummary | null>(null)
   const [choice, setChoice] = useState<NeedsChoice | null>(null)
   const [choiceTaskId, setChoiceTaskId] = useState('')
   const [choiceText, setChoiceText] = useState('')
@@ -118,7 +132,9 @@ export default function AiCommandBox() {
     <div className="rounded-2xl border border-line bg-white p-5 shadow-lg">
       <h2 className="font-display text-base font-semibold text-ink">Команда ИИ</h2>
       <p className="mt-0.5 text-sm text-ink-soft">
-        Умеет добавлять комментарий, дополнять описание, менять срок (в том числе «через две недели», «в последнюю субботу сентября»), приоритет или статус, ставить/убирать тег. Например: «перенеси задачу про отчёт на через две недели» или «допиши в описание задачи про МЭИ, что нужен акт сверки».
+        Задачи: комментарий, описание, срок (в том числе «через две недели», «в последнюю субботу сентября»), приоритет, статус, тег. Например: «перенеси задачу про отчёт на через две недели».
+        <br />
+        Проекты НИОКР: комментарий, отметка/дата/комментарий у шага чек-листа, исполнение требования о возврате, статус проекта, сводка по одному или нескольким проектам сразу. Например: «отметь Иерархии, что заключение эксперта получено», «у ГСУ-500 исполнили требование о возврате» или «сводка по проектам Удар и Доцент».
       </p>
 
       <form onSubmit={handleSubmit} className="mt-3 space-y-3">
@@ -158,6 +174,41 @@ export default function AiCommandBox() {
           <Link href={`/tasks/${result.task_id}`} className="mt-1 inline-block underline">
             {result.task_text} →
           </Link>
+        </div>
+      )}
+
+      {result && result.type === 'project_comment_posted' && (
+        <div className="mt-3 rounded-lg bg-teal-soft px-3 py-2.5 text-sm text-teal">
+          <p className="font-medium">Комментарий добавлен.</p>
+          <p className="mt-1 text-ink">«{result.comment_text}»</p>
+          <Link href={`/projects/${result.project_id}`} className="mt-1 inline-block underline">
+            {result.project_code} →
+          </Link>
+        </div>
+      )}
+
+      {result && result.type === 'project_updated' && (
+        <div className="mt-3 rounded-lg bg-teal-soft px-3 py-2.5 text-sm text-teal">
+          <p className="font-medium">
+            {result.field} — {result.step_title}: {result.new_value}
+          </p>
+          <Link href={`/projects/${result.project_id}`} className="mt-1 inline-block underline">
+            {result.project_code} →
+          </Link>
+        </div>
+      )}
+
+      {result && result.type === 'project_summary' && (
+        <div className="mt-3 space-y-2">
+          {result.reason && <p className="rounded-lg bg-normal-soft px-3 py-2 text-xs text-normal">{result.reason}</p>}
+          {result.summaries.map((s) => (
+            <div key={s.project_id} className="rounded-lg border border-line bg-paper px-3 py-2.5 text-sm">
+              <pre className="whitespace-pre-wrap font-sans text-ink">{s.text}</pre>
+              <Link href={`/projects/${s.project_id}`} className="mt-1.5 inline-block text-xs text-teal underline">
+                {s.project_code} →
+              </Link>
+            </div>
+          ))}
         </div>
       )}
 
