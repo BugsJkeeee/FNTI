@@ -460,7 +460,7 @@ async function handleProjectIntent(
     }
     if (openClaims.length > 1) {
       return NextResponse.json(
-        { error: `На этапе ${stage.stage_number} проекта «${project.code}» несколько незакрытых требований — уточни в разделе «Системная информация» на странице проекта, какое именно.` },
+        { error: `На этапе ${stage.stage_number} проекта «${project.code}» несколько незакрытых требований — уточни в разделе «Дополнительная информация» на странице проекта, какое именно.` },
         { status: 422 }
       )
     }

@@ -893,7 +893,7 @@ function SystemInfoSection({
   return (
     <div className="rounded-2xl border border-line bg-white p-5">
       <button onClick={() => setExpanded((e) => !e)} className="flex w-full items-center justify-between text-left">
-        <h2 className="font-display text-base font-semibold text-ink">Системная информация</h2>
+        <h2 className="font-display text-base font-semibold text-ink">Дополнительная информация</h2>
         <span className="text-xs text-ink-soft">{expanded ? 'Свернуть' : 'Развернуть'}</span>
       </button>
       {expanded && (
