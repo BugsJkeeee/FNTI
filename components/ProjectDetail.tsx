@@ -218,7 +218,12 @@ function ContractRow({ projectId, contract, onSaved }: { projectId: string; cont
   const [editing, setEditing] = useState(false)
   const [akr, setAkr] = useState(contract.akr)
   const [saving, setSaving] = useState(false)
-  const [showDetails, setShowDetails] = useState(false)
+  const [showAgreements, setShowAgreements] = useState(false)
+  const [agreements, setAgreements] = useState<{ number: string; date: string }[]>(() =>
+    contract.additional_agreements.map((a) => ({ number: a.number, date: a.date ?? '' }))
+  )
+  const [agreementsDirty, setAgreementsDirty] = useState(false)
+  const [savingAgreements, setSavingAgreements] = useState(false)
 
   function startEditing() {
     setAkr(contract.akr)
@@ -240,6 +245,30 @@ function ContractRow({ projectId, contract, onSaved }: { projectId: string; cont
       }
     } finally {
       setSaving(false)
+    }
+  }
+
+  function setAgreementField(i: number, field: 'number' | 'date', value: string) {
+    setAgreements((a) => a.map((row, idx) => (idx === i ? { ...row, [field]: value } : row)))
+    setAgreementsDirty(true)
+  }
+
+  async function saveAgreements() {
+    setSavingAgreements(true)
+    try {
+      const clean = agreements.filter((a) => a.number || a.date).map((a) => ({ number: a.number, date: a.date || null }))
+      const res = await fetch(`/api/projects/${projectId}/contracts/${contract.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ additional_agreements: clean }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        onSaved(data)
+        setAgreementsDirty(false)
+      }
+    } finally {
+      setSavingAgreements(false)
     }
   }
 
@@ -277,14 +306,61 @@ function ContractRow({ projectId, contract, onSaved }: { projectId: string; cont
         ) : (
           <button onClick={startEditing} className="text-xs text-teal hover:opacity-80">+ добавить АКР</button>
         )}
-        {contract.additional_agreements && (
-          <button onClick={() => setShowDetails((s) => !s)} className="text-xs text-ink-soft transition hover:text-teal">
-            {showDetails ? 'скрыть доп. соглашения' : 'доп. соглашения'}
-          </button>
-        )}
+        <button onClick={() => setShowAgreements((s) => !s)} className="text-xs text-ink-soft transition hover:text-teal">
+          {agreements.length > 0 ? `доп. соглашения (${agreements.length})` : '+ доп. соглашение'}
+        </button>
       </div>
-      {showDetails && contract.additional_agreements && (
-        <p className="mt-1.5 whitespace-pre-wrap text-[11px] text-ink-soft">{contract.additional_agreements}</p>
+      {showAgreements && (
+        <div className="mt-1.5 space-y-1">
+          {agreements.map((a, i) => (
+            <div key={i} className="flex flex-wrap items-center gap-1.5">
+              <input
+                type="text"
+                value={a.number}
+                onChange={(e) => setAgreementField(i, 'number', e.target.value)}
+                placeholder="№ доп. соглашения"
+                className="w-36 rounded-md border border-line bg-paper px-1.5 py-0.5 text-[11px] text-ink outline-none focus:border-teal"
+              />
+              <input
+                type="date"
+                value={a.date}
+                onChange={(e) => setAgreementField(i, 'date', e.target.value)}
+                className="rounded-md border border-line bg-paper px-1.5 py-0.5 font-mono text-[11px] text-ink-soft outline-none focus:border-teal"
+              />
+              <button
+                onClick={() => {
+                  setAgreements((arr) => arr.filter((_, idx) => idx !== i))
+                  setAgreementsDirty(true)
+                }}
+                className="text-[11px] text-ink-soft hover:text-urgent"
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                // Номер и порядковый суффикс предзаполняем сами — так меньше риск опечататься
+                // в номере договора при ручном вводе.
+                setAgreements((a) => [...a, { number: `${contract.contract_number}/${a.length + 1}`, date: '' }])
+                setAgreementsDirty(true)
+              }}
+              className="text-[11px] text-teal hover:opacity-80"
+            >
+              + добавить
+            </button>
+            {agreementsDirty && (
+              <button
+                onClick={saveAgreements}
+                disabled={savingAgreements}
+                className="rounded-md border border-line px-2 py-0.5 text-[11px] text-ink-soft transition hover:border-teal hover:text-teal disabled:opacity-50"
+              >
+                {savingAgreements ? '…' : 'OK'}
+              </button>
+            )}
+          </div>
+        </div>
       )}
     </li>
   )

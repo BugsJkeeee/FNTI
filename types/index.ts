@@ -140,7 +140,7 @@ export interface ProjectContract {
   subsidy_decision_number: string
   subsidy_decision_date: string | null
   subsidy_identifier: string
-  additional_agreements: string
+  additional_agreements: { number: string; date: string | null }[]
   created_at: string
 }
 

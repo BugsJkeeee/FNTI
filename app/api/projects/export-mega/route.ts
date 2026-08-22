@@ -24,6 +24,12 @@ function formatDate(d: string | null | undefined) {
   return d ? new Date(d).toLocaleDateString('ru-RU') : ''
 }
 
+// Мега-таблица хранит доп.соглашения одной текстовой ячейкой, несколько — через перевод строки;
+// у нас это список [{number, date}], собираем обратно в тот же текстовый формат для экспорта.
+function formatAdditionalAgreements(list: { number: string; date: string | null }[] | undefined) {
+  return (list ?? []).map((a) => `№ ${a.number} от ${formatDate(a.date)}`).join('\n')
+}
+
 function contractFor(contracts: ProjectContract[], year: number) {
   return contracts.find((c) => c.contract_year === year)
 }
@@ -112,13 +118,13 @@ export async function GET() {
       'Номер карточки проекта в ЕГИСУ НИОКТР': p.egisu_number,
       'Номер грантового договора 2024 года': c2024?.contract_number ?? '',
       'Дата грантового договора 2024 года': formatDate(c2024?.contract_date),
-      'Реквизиты дополнительных соглашений к договору 2024 года': c2024?.additional_agreements ?? '',
+      'Реквизиты дополнительных соглашений к договору 2024 года': formatAdditionalAgreements(c2024?.additional_agreements),
       'Номер грантового договора 2025 года': c2025?.contract_number ?? '',
       'Дата грантового договора 2025 года': formatDate(c2025?.contract_date),
-      'Реквизиты дополнительных соглашений к договору 2025 года': c2025?.additional_agreements ?? '',
+      'Реквизиты дополнительных соглашений к договору 2025 года': formatAdditionalAgreements(c2025?.additional_agreements),
       'Номер грантового договора 2026 года': c2026?.contract_number ?? '',
       'Дата грантового договора 2026 года': formatDate(c2026?.contract_date),
-      'Реквизиты дополнительных соглашений к договору 2026 года': c2026?.additional_agreements ?? '',
+      'Реквизиты дополнительных соглашений к договору 2026 года': formatAdditionalAgreements(c2026?.additional_agreements),
       'Окончание этапа 1': formatDate(stage(1)?.end_date),
       'Окончание этапа 2': formatDate(stage(2)?.end_date),
       'Окончание этапа 3': formatDate(stage(3)?.end_date),

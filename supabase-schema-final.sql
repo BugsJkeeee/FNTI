@@ -392,7 +392,9 @@ alter table project_contracts add column if not exists subsidy_agreement_date da
 alter table project_contracts add column if not exists subsidy_decision_number text not null default '';
 alter table project_contracts add column if not exists subsidy_decision_date date;
 alter table project_contracts add column if not exists subsidy_identifier text not null default '';
-alter table project_contracts add column if not exists additional_agreements text not null default ''; -- реквизиты допсоглашений, несколько — через перевод строки
+-- реквизиты доп.соглашений к договору — список [{"number": "...", "date": "YYYY-MM-DD"}, ...],
+-- пополняется вручную через "+" в Системной информации.
+alter table project_contracts add column if not exists additional_agreements jsonb not null default '[]';
 
 -- Платёжный реестр (лист «Платежи») — детальные строки план/факт по договору за год,
 -- источник для агрегатов "Обязательства/Оплачено" (их НЕ храним отдельно на projects,
