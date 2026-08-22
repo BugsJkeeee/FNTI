@@ -342,16 +342,16 @@ export default function ProjectList({ initialProjects }: { initialProjects: Proj
           ))}
         </select>
         <Link
-          href="/api/projects/export"
-          className="min-w-0 flex-1 rounded-lg border border-line bg-white px-2.5 py-1 text-center text-sm text-ink-soft transition hover:border-teal hover:text-teal"
+          href="/api/projects/export-mega"
+          className="shrink-0 whitespace-nowrap rounded-lg border border-line bg-white px-2.5 py-1 text-center text-sm text-ink-soft transition hover:border-teal hover:text-teal"
         >
-          Экспорт в Excel
+          Экспорт в Excel (мегатаблица)
         </Link>
       </div>
 
       {byWave.map(([wave, waveProjects]) => (
         <section key={wave}>
-          <h2 className="mb-3 font-display text-base font-semibold text-ink">{wave} волна</h2>
+          <h2 className="mb-2 font-display text-base font-semibold text-ink">{wave} волна</h2>
           <div className="space-y-3">
             {waveProjects.map((p) => (
               <ProjectRow key={p.id} project={p} displayNumber={displayNumbers.get(p.id) ?? 0} highlightQuery={query} />

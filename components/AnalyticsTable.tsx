@@ -46,7 +46,7 @@ export default function AnalyticsTable({
 
   return (
     <div>
-      <div className="mt-6 grid grid-cols-2 gap-3">
+      <div className="mt-4 grid grid-cols-2 gap-3">
         <div className="rounded-xl border border-line bg-white p-4 text-center">
           <button
             onClick={() => setSelected({ title: 'Активные задачи команды', tasks: totalActiveTasks })}
@@ -69,7 +69,7 @@ export default function AnalyticsTable({
         </div>
       </div>
 
-      <div className="mt-6 overflow-hidden rounded-xl border border-line bg-white">
+      <div className="mt-4 overflow-hidden rounded-xl border border-line bg-white">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-line bg-paper text-left text-xs text-ink-soft">

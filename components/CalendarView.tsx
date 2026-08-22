@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import type { Employee, Priority, Task } from '@/types'
-import { PriorityBadge, StatusBadge, priorityLabels, statusLabels } from '@/components/Badges'
+import { priorityLabels, statusLabels } from '@/components/Badges'
 import TaskCard from '@/components/TaskCard'
 import { getDisplayStatus } from '@/lib/task-status'
 
@@ -20,35 +20,29 @@ type WeekDay = {
   tasks: Task[]
 }
 
+const statusDot: Record<ReturnType<typeof getDisplayStatus>, string> = {
+  'новая': 'bg-teal',
+  'в работе': 'bg-normal',
+  'выполнена': 'bg-done',
+  'просрочена': 'bg-overdue',
+}
+
 function DayTaskItem({ task }: { task: Task }) {
   const status = getDisplayStatus(task)
   return (
     <Link
       href={`/tasks/${task.id}?from=calendar`}
-      className={`relative block rounded-lg border-2 bg-paper p-3 text-base transition hover:opacity-80 ${priorityBorder[task.priority]}`}
+      title={task.text}
+      className={`relative block rounded-md border bg-paper px-1.5 py-1 text-xs transition hover:opacity-80 ${priorityBorder[task.priority]}`}
     >
       {task.has_unread_comment && (
-        <span className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 rounded-full bg-urgent ring-2 ring-paper" />
+        <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-urgent ring-2 ring-paper" />
       )}
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-ink">{task.text}</p>
-        <div className="flex shrink-0 items-center gap-1.5">
-          {!!task.comment_count && (
-            <span className="flex items-center gap-1 font-mono text-sm text-ink-soft">
-              <svg viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
-                <path d="M2 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H8l-4 3.5V14H4a2 2 0 0 1-2-2V4Z" />
-              </svg>
-              {task.comment_count}
-            </span>
-          )}
-          <PriorityBadge priority={task.priority} />
-          <StatusBadge status={status} />
-        </div>
+      <div className="flex items-start gap-1">
+        <span className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${statusDot[status]}`} />
+        <p className="break-words text-ink">{task.text}</p>
       </div>
-      <div className="mt-1.5 flex items-center justify-between gap-2 font-mono text-sm text-ink-soft">
-        <span>от {task.author?.name ?? '—'} → {task.assignee?.name ?? '—'}</span>
-        <span className="shrink-0">#{task.number}</span>
-      </div>
+      <p className="mt-0.5 truncate pl-2.5 font-mono text-[10px] text-ink-soft">→ {task.assignee?.name ?? '—'}</p>
     </Link>
   )
 }
@@ -101,7 +95,7 @@ export default function CalendarView({
   }, [otherTasks, assigneeFilter, priorityFilter, statusFilter, tagFilter, query])
 
   return (
-    <div className="mt-6 space-y-8">
+    <div className="mt-4 space-y-5">
       <div className="flex flex-wrap items-center gap-2">
         <span className="mr-1 font-mono text-xs text-ink-soft">Показать задачи:</span>
         <button
@@ -128,30 +122,32 @@ export default function CalendarView({
       </div>
 
       <section>
-        <h2 className="mb-3 font-display text-base font-semibold text-ink">На этой неделе</h2>
-        <div className="space-y-3">
-          {visibleWeekDays.map((day) => (
-            <div
-              key={day.date}
-              className={`rounded-xl border bg-white p-4 ${day.isToday ? 'border-teal' : 'border-line'}`}
-            >
-              <p className={`font-mono text-sm font-medium capitalize ${day.isToday ? 'text-teal' : 'text-ink-soft'}`}>
-                {day.label}
-              </p>
-              <div className="mt-2 space-y-2">
-                {day.tasks.length === 0 ? (
-                  <p className="text-sm text-ink-soft">Нет задач</p>
-                ) : (
-                  day.tasks.map((task) => <DayTaskItem key={task.id} task={task} />)
-                )}
+        <h2 className="mb-2 font-display text-base font-semibold text-ink">На этой неделе</h2>
+        <div className="overflow-x-auto">
+          <div className="grid min-w-[840px] grid-cols-7 gap-2">
+            {visibleWeekDays.map((day) => (
+              <div
+                key={day.date}
+                className={`rounded-lg border bg-white p-2 ${day.isToday ? 'border-teal' : 'border-line'}`}
+              >
+                <p className={`text-center font-mono text-[11px] font-medium capitalize ${day.isToday ? 'text-teal' : 'text-ink-soft'}`}>
+                  {day.label}
+                </p>
+                <div className="mt-1.5 space-y-1">
+                  {day.tasks.length === 0 ? (
+                    <p className="text-center text-[11px] text-ink-soft">—</p>
+                  ) : (
+                    day.tasks.map((task) => <DayTaskItem key={task.id} task={task} />)
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 
       <section>
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-base font-semibold text-ink">Остальные задачи</h2>
           <div className="flex flex-wrap gap-2">
             <input
@@ -200,7 +196,7 @@ export default function CalendarView({
             Ничего не найдено.
           </p>
         ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((task) => (
               <TaskCard key={task.id} task={task} currentEmployeeId={currentEmployeeId} highlightQuery={query} from="calendar" />
             ))}

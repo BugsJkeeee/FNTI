@@ -15,11 +15,13 @@ export default function TaskCard({
   currentEmployeeId,
   highlightQuery,
   from,
+  compact,
 }: {
   task: Task
   currentEmployeeId: string
   highlightQuery?: string
   from?: string
+  compact?: boolean
 }) {
   const displayStatus = getDisplayStatus(task)
   const role = getTaskRole(task, currentEmployeeId)
@@ -32,9 +34,9 @@ export default function TaskCard({
   return (
     <Link
       href={from ? `/tasks/${task.id}?from=${from}` : `/tasks/${task.id}`}
-      className={`relative block rounded-xl border-2 p-4 transition hover:opacity-80 ${
-        isDone ? 'border-line bg-line/40' : `bg-white ${priorityBorder[task.priority]}`
-      }`}
+      className={`relative block transition hover:opacity-80 ${
+        compact ? 'rounded-lg border p-2' : 'rounded-xl border-2 p-4'
+      } ${isDone ? 'border-line bg-line/40' : `bg-white ${priorityBorder[task.priority]}`}`}
     >
       {task.has_unread_comment && (
         <span className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 rounded-full bg-urgent ring-2 ring-paper" />
@@ -57,13 +59,13 @@ export default function TaskCard({
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
+      <div className={`flex flex-wrap items-center gap-2 ${compact ? 'mt-1.5' : 'mt-3'}`}>
         <RoleBadge role={role} />
         <PriorityBadge priority={task.priority} />
         <StatusBadge status={displayStatus} />
       </div>
 
-      <div className="mt-2 flex items-center justify-between gap-3 font-mono text-xs text-ink-soft">
+      <div className={`flex items-center justify-between gap-3 font-mono text-xs text-ink-soft ${compact ? 'mt-1' : 'mt-2'}`}>
         <div className="flex gap-3">
           <span>от {task.author?.name ?? '—'}</span>
           <span>→ {task.assignee?.name ?? '—'}</span>

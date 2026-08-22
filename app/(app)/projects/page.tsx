@@ -20,10 +20,10 @@ export default async function ProjectsPage() {
   const projectsWithComments = await attachProjectCommentInfo(supabase, (projects as Project[]) ?? [], employee!.id)
 
   return (
-    <div className="-mt-4">
+    <div>
       <h1 className="font-display text-xl font-semibold text-ink">Проекты НИОКР</h1>
 
-      <div className="mt-3">
+      <div className="mt-2">
         <ProjectList initialProjects={projectsWithComments} />
       </div>
     </div>

@@ -5,9 +5,8 @@ import Link from 'next/link'
 import type { Employee, Priority, Task } from '@/types'
 import TaskForm from '@/components/TaskForm'
 import TaskCard from '@/components/TaskCard'
-import SummaryStats from '@/components/SummaryStats'
 import { priorityLabels, statusLabels } from '@/components/Badges'
-import { getDisplayStatus, isBurning, isOverdue } from '@/lib/task-status'
+import { getDisplayStatus } from '@/lib/task-status'
 import { useTaskInserted } from '@/lib/hooks/useTaskInserted'
 
 export default function MyDashboard({
@@ -33,15 +32,6 @@ export default function MyDashboard({
   }
 
   useTaskInserted(refresh)
-
-  const myOverdue = useMemo(
-    () => tasks.filter((t) => t.assignee_id === currentEmployee.id && isOverdue(t)),
-    [tasks, currentEmployee.id]
-  )
-  const myBurning = useMemo(
-    () => tasks.filter((t) => t.assignee_id === currentEmployee.id && isBurning(t)),
-    [tasks, currentEmployee.id]
-  )
 
   const asAssignee = useMemo(
     () => tasks.filter((t) => t.assignee_id === currentEmployee.id && t.status !== 'выполнена'),
@@ -72,36 +62,11 @@ export default function MyDashboard({
   }, [activeTabAll, priorityFilter, statusFilter, tagFilter, query])
 
   return (
-    <div className="space-y-8">
-      <SummaryStats tasks={tasks} employeeId={currentEmployee.id} />
-
-      {myOverdue.length > 0 && (
-        <section>
-          <h2 className="font-display text-base font-semibold text-overdue">Просроченные</h2>
-          <p className="mb-3 text-xs text-ink-soft">Срок уже прошёл, а задача не выполнена.</p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {myOverdue.map((task) => (
-              <TaskCard key={task.id} task={task} currentEmployeeId={currentEmployee.id} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {myBurning.length > 0 && (
-        <section>
-          <h2 className="mb-3 font-display text-base font-semibold text-urgent">Требующие внимания</h2>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {myBurning.map((task) => (
-              <TaskCard key={task.id} task={task} currentEmployeeId={currentEmployee.id} />
-            ))}
-          </div>
-        </section>
-      )}
-
+    <div className="space-y-5">
       <section>
         <button
           onClick={() => setShowQuickCreate((v) => !v)}
-          className="mb-3 rounded-lg bg-graphite px-4 py-2 text-sm font-medium text-paper transition hover:bg-graphite-light"
+          className="mb-2 rounded-lg bg-graphite px-4 py-2 text-sm font-medium text-paper transition hover:bg-graphite-light"
         >
           {showQuickCreate ? 'Скрыть форму' : '+ Быстро создать задачу'}
         </button>
@@ -109,11 +74,11 @@ export default function MyDashboard({
       </section>
 
       <section>
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-base font-semibold text-ink">Мои задачи</h2>
           <Link href="/calendar" className="text-sm text-teal hover:underline">Открыть календарь →</Link>
         </div>
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
           <div className="flex gap-1">
             <button
               onClick={() => setTab('assignee')}
@@ -175,9 +140,9 @@ export default function MyDashboard({
             Здесь пока пусто.
           </p>
         ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {activeTab.map((task) => (
-              <TaskCard key={task.id} task={task} currentEmployeeId={currentEmployee.id} highlightQuery={query} />
+              <TaskCard key={task.id} task={task} currentEmployeeId={currentEmployee.id} highlightQuery={query} compact />
             ))}
           </div>
         )}
@@ -185,10 +150,10 @@ export default function MyDashboard({
 
       {done.length > 0 && (
         <section>
-          <h2 className="mb-3 font-display text-base font-semibold text-ink-soft">Выполненные</h2>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <h2 className="mb-2 font-display text-base font-semibold text-ink-soft">Выполненные</h2>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {done.map((task) => (
-              <TaskCard key={task.id} task={task} currentEmployeeId={currentEmployee.id} />
+              <TaskCard key={task.id} task={task} currentEmployeeId={currentEmployee.id} compact />
             ))}
           </div>
         </section>

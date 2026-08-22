@@ -52,7 +52,7 @@ export default async function TaskPage({
     .upsert({ task_id: id, employee_id: employee!.id, viewed_at: new Date().toISOString() })
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Link href={backHref} className="text-sm text-ink-soft hover:text-ink">{backLabel}</Link>
 
       <TaskDetail

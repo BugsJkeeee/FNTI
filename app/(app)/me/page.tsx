@@ -54,7 +54,7 @@ export default async function MePage() {
   }
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       <div>
         <h1 className="font-display text-xl font-semibold text-ink">Личный кабинет</h1>
         <p className="mt-1 text-sm text-ink-soft">Привет, {employee!.name}.</p>

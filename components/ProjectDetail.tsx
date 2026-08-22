@@ -821,7 +821,7 @@ function SystemInfoSection({
         <span className="text-xs text-ink-soft">{expanded ? 'Свернуть' : 'Развернуть'}</span>
       </button>
       {expanded && (
-        <div className="mt-3 space-y-4">
+        <div className="mt-2 space-y-3">
           <ContractsCard
             projectId={projectId}
             contracts={contracts}
@@ -987,12 +987,12 @@ export default function ProjectDetail({
   const firstActiveIndex = stages.findIndex((s) => !isStageClosed(s.checklist_items ?? []))
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <ProjectHeader project={project} isOwner={currentEmployee.is_owner} onSaved={(patch) => setProject((p) => ({ ...p, ...patch }))} />
 
       <section>
-        <h2 className="mb-3 font-display text-base font-semibold text-ink">Этапы</h2>
-        <div className="space-y-4">
+        <h2 className="mb-2 font-display text-base font-semibold text-ink">Этапы</h2>
+        <div className="space-y-3">
           {stages.map((stage, i) => (
             <StageCard
               key={stage.id}

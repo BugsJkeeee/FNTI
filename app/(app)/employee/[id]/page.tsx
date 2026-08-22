@@ -31,7 +31,7 @@ export default async function EmployeePage({ params }: { params: Promise<{ id: s
   const done = all.filter((t) => t.status === 'выполнена')
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       <RealtimeTaskRefresher />
       <div>
         <h1 className="font-display text-xl font-semibold text-ink">{person.name}</h1>

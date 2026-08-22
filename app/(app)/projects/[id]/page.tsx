@@ -25,7 +25,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
     .upsert({ project_id: id, employee_id: employee!.id, viewed_at: new Date().toISOString() })
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Link href="/projects" className="text-sm text-ink-soft hover:text-ink">← Назад к проектам</Link>
       <ProjectDetail project={project as Project} currentEmployee={employee!} />
     </div>

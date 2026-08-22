@@ -20,7 +20,7 @@ export default async function GlossaryPage() {
   const tags = (tagsData as Tag[]) ?? []
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
         <h1 className="font-display text-xl font-semibold text-ink">Глоссарий проекта</h1>
         <p className="mt-1 text-sm text-ink-soft">

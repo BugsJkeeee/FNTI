@@ -55,16 +55,16 @@ export default function TeamBoard({
   }, [tasks, assigneeFilter, priorityFilter, statusFilter, tagFilter, query])
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       <TaskForm employees={employees} onCreated={refresh} />
 
       {overdue.length > 0 && (
         <section>
           <h2 className="font-display text-base font-semibold text-overdue">Просроченные</h2>
-          <p className="mb-3 text-xs text-ink-soft">Срок уже прошёл, а задача не выполнена.</p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <p className="mb-2 text-xs text-ink-soft">Срок уже прошёл, а задача не выполнена.</p>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {overdue.map((task) => (
-              <TaskCard key={task.id} task={task} currentEmployeeId={currentEmployee.id} />
+              <TaskCard key={task.id} task={task} currentEmployeeId={currentEmployee.id} compact />
             ))}
           </div>
         </section>
@@ -73,17 +73,17 @@ export default function TeamBoard({
       {burning.length > 0 && (
         <section>
           <h2 className="font-display text-base font-semibold text-urgent">Требующие внимания</h2>
-          <p className="mb-3 text-xs text-ink-soft">Задачи на ближайшие 3 дня со статусом «Важно».</p>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <p className="mb-2 text-xs text-ink-soft">Задачи на ближайшие 3 дня со статусом «Важно».</p>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {burning.map((task) => (
-              <TaskCard key={task.id} task={task} currentEmployeeId={currentEmployee.id} />
+              <TaskCard key={task.id} task={task} currentEmployeeId={currentEmployee.id} compact />
             ))}
           </div>
         </section>
       )}
 
       <section>
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-display text-base font-semibold text-ink">Все задачи</h2>
           <div className="flex flex-wrap gap-2">
             <input
@@ -143,9 +143,9 @@ export default function TeamBoard({
             Ничего не найдено.
           </p>
         ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((task) => (
-              <TaskCard key={task.id} task={task} currentEmployeeId={currentEmployee.id} highlightQuery={query} />
+              <TaskCard key={task.id} task={task} currentEmployeeId={currentEmployee.id} highlightQuery={query} compact />
             ))}
           </div>
         )}
@@ -153,10 +153,10 @@ export default function TeamBoard({
 
       {done.length > 0 && (
         <section>
-          <h2 className="mb-3 font-display text-base font-semibold text-ink-soft">Выполненные</h2>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <h2 className="mb-2 font-display text-base font-semibold text-ink-soft">Выполненные</h2>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {done.map((task) => (
-              <TaskCard key={task.id} task={task} currentEmployeeId={currentEmployee.id} />
+              <TaskCard key={task.id} task={task} currentEmployeeId={currentEmployee.id} compact />
             ))}
           </div>
         </section>

@@ -30,7 +30,7 @@ export default async function DashboardPage() {
         исполнителя или в другой статус.
       </p>
 
-      <div className="mt-6">
+      <div className="mt-4">
         <DashboardBoard employees={team} initialTasks={visibleTasks} />
       </div>
     </div>
