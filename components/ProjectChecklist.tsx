@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { ChecklistTrack, ProjectChecklistItem, ProjectClaim } from '@/types'
 import { ClaimsListInline, SEND_CLAIM_FIELDS, EXECUTION_CLAIM_FIELDS } from '@/components/StageClaimInfo'
+import { PROTOCOL_STEP_KEYS } from '@/lib/project-checklist-templates'
 
 const TRACK_LABEL: Record<ChecklistTrack, string> = {
   technical: 'Техническая приёмка',
@@ -15,8 +16,8 @@ const TRACK_LABEL: Record<ChecklistTrack, string> = {
 // только проставить дату и сумму(ы) исполнения уже существующим (возврат может прийти
 // несколькими платежами — executionMode включает соответствующий UI).
 const CLAIM_MODE_BY_STEP: Record<string, { fieldKeys: typeof SEND_CLAIM_FIELDS; allowAdd: boolean; executionMode?: boolean }> = {
-  fin_8: { fieldKeys: SEND_CLAIM_FIELDS, allowAdd: true },
-  fin_9: { fieldKeys: EXECUTION_CLAIM_FIELDS, allowAdd: false, executionMode: true },
+  fin_9: { fieldKeys: SEND_CLAIM_FIELDS, allowAdd: true },
+  fin_10: { fieldKeys: EXECUTION_CLAIM_FIELDS, allowAdd: false, executionMode: true },
 }
 
 function ChecklistRow({
@@ -46,6 +47,9 @@ function ChecklistRow({
   const [targetDate, setTargetDate] = useState(item.target_date ?? '')
 
   const claimMode = item.template_key ? CLAIM_MODE_BY_STEP[item.template_key] : undefined
+  // "Результаты утверждены..." у обоих треков — вместо общих "срок"/"комментарий" показываем
+  // подписанные "Дата" и "Номер протокола" (те же поля target_date/comment, просто другие лейблы).
+  const isProtocolStep = item.template_key ? PROTOCOL_STEP_KEYS.includes(item.template_key) : false
 
   return (
     <div className={`rounded-lg px-1.5 py-1 transition ${item.done ? 'opacity-60' : ''}`}>
@@ -53,28 +57,56 @@ function ChecklistRow({
         <input type="checkbox" checked={item.done} onChange={onToggle} className="mt-0.5" />
         <div className="min-w-0 flex-1">
           <p className="text-sm leading-tight text-ink">{item.title}</p>
-          <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-            <input
-              type="date"
-              value={targetDate}
-              onChange={(e) => setTargetDate(e.target.value)}
-              onBlur={() => targetDate !== (item.target_date ?? '') && onFieldSave({ target_date: targetDate })}
-              className="rounded-md border border-line bg-paper px-1.5 py-0.5 font-mono text-xs text-ink-soft outline-none focus:border-teal"
-            />
-            {!item.is_default && (
-              <button onClick={onDelete} className="text-xs text-ink-soft transition hover:text-urgent">
-                удалить
-              </button>
-            )}
-          </div>
-          <textarea
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            onBlur={() => comment !== item.comment && onFieldSave({ comment })}
-            placeholder="Комментарий…"
-            rows={1}
-            className="mt-0.5 w-full rounded-md border border-line bg-paper px-1.5 py-0.5 text-xs text-ink outline-none focus:border-teal"
-          />
+          {isProtocolStep ? (
+            <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1">
+              <label className="flex items-center gap-1 text-xs text-ink-soft">
+                Дата
+                <input
+                  type="date"
+                  value={targetDate}
+                  onChange={(e) => setTargetDate(e.target.value)}
+                  onBlur={() => targetDate !== (item.target_date ?? '') && onFieldSave({ target_date: targetDate })}
+                  className="rounded-md border border-line bg-paper px-1.5 py-0.5 font-mono text-xs text-ink-soft outline-none focus:border-teal"
+                />
+              </label>
+              <label className="flex items-center gap-1 text-xs text-ink-soft">
+                № протокола
+                <input
+                  type="text"
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  onBlur={() => comment !== item.comment && onFieldSave({ comment })}
+                  placeholder="ГК-НИОКР-XX/ГГ"
+                  className="w-32 rounded-md border border-line bg-paper px-1.5 py-0.5 text-xs text-ink outline-none focus:border-teal"
+                />
+              </label>
+            </div>
+          ) : (
+            <>
+              <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                <input
+                  type="date"
+                  value={targetDate}
+                  onChange={(e) => setTargetDate(e.target.value)}
+                  onBlur={() => targetDate !== (item.target_date ?? '') && onFieldSave({ target_date: targetDate })}
+                  className="rounded-md border border-line bg-paper px-1.5 py-0.5 font-mono text-xs text-ink-soft outline-none focus:border-teal"
+                />
+                {!item.is_default && (
+                  <button onClick={onDelete} className="text-xs text-ink-soft transition hover:text-urgent">
+                    удалить
+                  </button>
+                )}
+              </div>
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                onBlur={() => comment !== item.comment && onFieldSave({ comment })}
+                placeholder="Комментарий…"
+                rows={1}
+                className="mt-0.5 w-full rounded-md border border-line bg-paper px-1.5 py-0.5 text-xs text-ink outline-none focus:border-teal"
+              />
+            </>
+          )}
           {claimMode && projectId && stageId && onClaimAdded && onClaimSaved && onClaimDeleted && (
             <ClaimsListInline
               projectId={projectId}

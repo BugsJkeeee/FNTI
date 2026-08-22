@@ -22,29 +22,35 @@ function minusMonths(dateISO: string | null, months: number): string | null {
 }
 
 export const TECHNICAL_TEMPLATE: TemplateStep[] = [
-  { template_key: 'tech_1', title: 'Открыть точку загрузки 1-го комплекта отчётной документации', computeTargetDate: (s) => minusMonths(s.end_date, 1) },
+  { template_key: 'tech_1', title: 'Открыть КТ для загрузки 1-го комплекта отчётной документации', computeTargetDate: (s) => minusMonths(s.end_date, 1) },
   { template_key: 'tech_2', title: 'Комплект получен → отправлен в МФТИ', computeTargetDate: () => null },
   { template_key: 'tech_3', title: 'Первичная проверка отчетности МФТИ', computeTargetDate: () => null },
-  { template_key: 'tech_4', title: 'Открыта контрольная точка по загрузке финального комплекта документации (при необходимости)', computeTargetDate: () => null },
-  { template_key: 'tech_5', title: 'Повторная экспертиза отчетности МФТИ', computeTargetDate: () => null },
+  { template_key: 'tech_4', title: 'Открыть контрольную точку по загрузке финального комплекта документации (при необходимости)', computeTargetDate: () => null },
+  { template_key: 'tech_5', title: 'Повторная экспертиза отчетности МФТИ (при необходимости)', computeTargetDate: () => null },
   { template_key: 'tech_6', title: 'Получено и проверено заключение эксперта', computeTargetDate: () => null },
-  { template_key: 'tech_7', title: 'Результаты утверждены на Грантовой комиссии', computeTargetDate: () => null },
+  { template_key: 'tech_7', title: 'Направить результаты экспертизы на Грантовую комиссию', computeTargetDate: () => null },
+  { template_key: 'tech_8', title: 'Результаты утверждены на Грантовой комиссии', computeTargetDate: () => null },
 ]
 
 export const FINANCIAL_TEMPLATE: TemplateStep[] = [
-  { template_key: 'fin_1', title: 'Открыть точку для загрузки финансовой отчетности', computeTargetDate: (s) => s.end_date },
-  { template_key: 'fin_2', title: 'Документы получены → проверены', computeTargetDate: () => null },
+  { template_key: 'fin_1', title: 'Открыть КТ для загрузки финансовой отчетности', computeTargetDate: (s) => s.end_date },
+  { template_key: 'fin_2', title: 'Документы получены → проверены → направлены эксперту', computeTargetDate: () => null },
   { template_key: 'fin_3', title: 'Первичная проверка отчетности', computeTargetDate: () => null },
   { template_key: 'fin_4', title: 'Направлены замечания от эксперта — получены пояснения', computeTargetDate: () => null },
   { template_key: 'fin_5', title: 'Повторная экспертиза доработанной отчетности', computeTargetDate: () => null },
   { template_key: 'fin_6', title: 'Заключение получено (на внутренней проверке)', computeTargetDate: () => null },
-  { template_key: 'fin_7', title: 'Результаты утверждены Грантовой комиссией', computeTargetDate: () => null },
-  { template_key: 'fin_8', title: 'Направлено требование о возврате (при необходимости)', computeTargetDate: () => null },
-  { template_key: 'fin_9', title: 'Исполнено требование о возврате', computeTargetDate: () => null },
+  { template_key: 'fin_7', title: 'Направить результаты экспертизы на Грантовую комиссию', computeTargetDate: () => null },
+  { template_key: 'fin_8', title: 'Результаты утверждены Грантовой комиссией', computeTargetDate: () => null },
+  { template_key: 'fin_9', title: 'Направлено требование о возврате (при необходимости)', computeTargetDate: () => null },
+  { template_key: 'fin_10', title: 'Исполнено требование о возврате (при необходимости)', computeTargetDate: () => null },
 ]
 
-export const FINAL_TECHNICAL_KEY = 'tech_7'
-export const FINAL_FINANCIAL_KEY = 'fin_9'
+export const FINAL_TECHNICAL_KEY = 'tech_8'
+export const FINAL_FINANCIAL_KEY = 'fin_10'
+// Шаг "Результаты утверждены..." у обоих треков — вместо обычных общих полей "срок"/"комментарий"
+// показывает подписанные "Дата" и "Номер протокола" (те же колонки target_date/comment, просто
+// с другими лейблами для этого конкретного шага — под него отдельные колонки не заводили).
+export const PROTOCOL_STEP_KEYS = ['tech_8', 'fin_8']
 
 /** Этап закрыт, когда финальный шаг обоих треков отмечен выполненным. */
 export function isStageClosed(items: { template_key: string | null; done: boolean }[]): boolean {
