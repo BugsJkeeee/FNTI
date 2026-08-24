@@ -14,6 +14,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const updates: Record<string, unknown> = {}
   if ('akr' in body) updates.akr = body.akr
+  if ('invoice_number' in body) updates.invoice_number = body.invoice_number
   if ('additional_agreements' in body) updates.additional_agreements = body.additional_agreements
 
   if (Object.keys(updates).length === 0) {

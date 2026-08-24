@@ -134,6 +134,7 @@ export interface ProjectContract {
   contract_year: number | null
   stage_number: number | null
   akr: string
+  invoice_number: string
   subsidy_ministry: string
   subsidy_agreement_number: string
   subsidy_agreement_date: string | null

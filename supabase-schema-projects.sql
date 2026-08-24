@@ -35,6 +35,7 @@ create table project_contracts (
   contract_year int,       -- старые импортированные договоры (год); новые заполняют stage_number
   stage_number int,        -- этап проекта, который финансирует договор
   akr text not null default '' check (akr ~ '^[0-9]{0,8}$'), -- Аналитический код раздела — только цифры, не более 8
+  invoice_number text not null default '', -- номер счёта
   created_at timestamptz not null default now()
 );
 

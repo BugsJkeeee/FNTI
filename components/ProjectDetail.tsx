@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { ChecklistTrack, Employee, Project, ProjectChecklistItem, ProjectClaim, ProjectContract, ProjectPayment, ProjectStage } from '@/types'
 import { isStageClosed } from '@/lib/project-checklist-templates'
+import { trackStatus } from '@/lib/project-status'
 import ProjectChecklist from '@/components/ProjectChecklist'
 import ProjectComments from '@/components/ProjectComments'
 import StageClaimsList from '@/components/StageClaimInfo'
@@ -218,6 +219,9 @@ function ContractRow({ projectId, contract, onSaved }: { projectId: string; cont
   const [editing, setEditing] = useState(false)
   const [akr, setAkr] = useState(contract.akr)
   const [saving, setSaving] = useState(false)
+  const [editingInvoice, setEditingInvoice] = useState(false)
+  const [invoiceNumber, setInvoiceNumber] = useState(contract.invoice_number)
+  const [savingInvoice, setSavingInvoice] = useState(false)
   const [showAgreements, setShowAgreements] = useState(false)
   const [agreements, setAgreements] = useState<{ number: string; date: string }[]>(() =>
     contract.additional_agreements.map((a) => ({ number: a.number, date: a.date ?? '' }))
@@ -245,6 +249,29 @@ function ContractRow({ projectId, contract, onSaved }: { projectId: string; cont
       }
     } finally {
       setSaving(false)
+    }
+  }
+
+  function startEditingInvoice() {
+    setInvoiceNumber(contract.invoice_number)
+    setEditingInvoice(true)
+  }
+
+  async function saveInvoiceNumber() {
+    setSavingInvoice(true)
+    try {
+      const res = await fetch(`/api/projects/${projectId}/contracts/${contract.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invoice_number: invoiceNumber }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        onSaved(data)
+        setEditingInvoice(false)
+      }
+    } finally {
+      setSavingInvoice(false)
     }
   }
 
@@ -279,6 +306,31 @@ function ContractRow({ projectId, contract, onSaved }: { projectId: string; cont
           {contract.contract_number} от {formatDate(contract.contract_date)}{' '}
           {contract.stage_number ? `(этап ${contract.stage_number})` : contract.contract_year ? `(${contract.contract_year})` : ''}
         </span>
+        {editingInvoice ? (
+          <>
+            <input
+              value={invoiceNumber}
+              onChange={(e) => setInvoiceNumber(e.target.value)}
+              placeholder="Номер счёта"
+              autoFocus
+              className="w-32 rounded-md border border-line bg-paper px-2 py-1 text-xs text-ink outline-none focus:border-teal"
+            />
+            <button
+              onClick={saveInvoiceNumber}
+              disabled={savingInvoice}
+              className="rounded-md border border-line px-2 py-1 text-xs text-ink-soft transition hover:border-teal hover:text-teal disabled:opacity-50"
+            >
+              {savingInvoice ? 'Сохраняю…' : 'Сохранить'}
+            </button>
+            <button onClick={() => setEditingInvoice(false)} className="text-xs text-ink-soft hover:text-ink">Отмена</button>
+          </>
+        ) : contract.invoice_number ? (
+          <button onClick={startEditingInvoice} className="font-mono text-xs text-ink-soft transition hover:text-teal">
+            Счёт: {contract.invoice_number}
+          </button>
+        ) : (
+          <button onClick={startEditingInvoice} className="text-xs text-teal hover:opacity-80">+ добавить номер счёта</button>
+        )}
         {editing ? (
           <>
             <input
@@ -465,12 +517,6 @@ function lastCompletedStep(items: ProjectChecklistItem[], track: ChecklistTrack)
     .sort((a, b) => b.step_order - a.step_order)[0] ?? null
 }
 
-function nextPendingStep(items: ProjectChecklistItem[], track: ChecklistTrack) {
-  return [...items]
-    .filter((i) => i.track === track && !i.done)
-    .sort((a, b) => a.step_order - b.step_order)[0] ?? null
-}
-
 function ClosedStageSummary({
   projectId,
   stage,
@@ -577,15 +623,15 @@ function StageCard({
 }) {
   const closed = isStageClosed(stage.checklist_items ?? [])
   const [editingDates, setEditingDates] = useState(false)
-  const [expanded, setExpanded] = useState(true)
+  const [expanded, setExpanded] = useState(false)
   const [startDate, setStartDate] = useState(stage.start_date ?? '')
   const [endDate, setEndDate] = useState(stage.end_date ?? '')
   const [cost, setCost] = useState(stage.cost?.toString() ?? '')
 
   const techItems = (stage.checklist_items ?? []).filter((i) => i.track === 'technical')
   const finItems = (stage.checklist_items ?? []).filter((i) => i.track === 'financial')
-  const techNext = nextPendingStep(stage.checklist_items ?? [], 'technical')
-  const finNext = nextPendingStep(stage.checklist_items ?? [], 'financial')
+  const techStatus = trackStatus(stage, 'technical')
+  const finStatus = trackStatus(stage, 'financial')
 
   function saveDates() {
     onStageSave({ start_date: startDate || null, end_date: endDate || null, cost: cost ? Number(cost) : null })
@@ -687,11 +733,11 @@ function StageCard({
           <div className="grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
             <div>
               <div className="font-medium text-ink-soft">Техническая приёмка</div>
-              <div className="mt-0.5 text-ink">{techNext ? techNext.title : 'Все шаги выполнены'}</div>
+              <div className={`mt-0.5 ${techStatus.overdue ? 'font-medium text-overdue' : techStatus.planned ? 'text-ink-soft' : 'text-ink'}`}>{techStatus.text}</div>
             </div>
             <div>
               <div className="font-medium text-ink-soft">Финансовая приёмка</div>
-              <div className="mt-0.5 text-ink">{finNext ? finNext.title : 'Все шаги выполнены'}</div>
+              <div className={`mt-0.5 ${finStatus.overdue ? 'font-medium text-overdue' : finStatus.planned ? 'text-ink-soft' : 'text-ink'}`}>{finStatus.text}</div>
             </div>
           </div>
         )}
