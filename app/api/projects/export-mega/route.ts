@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import * as XLSX from 'xlsx'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentEmployee } from '@/lib/current-employee'
-import type { Project, ProjectContract, ProjectPayment } from '@/types'
+import type { Project, ProjectClaim, ProjectContract, ProjectPayment } from '@/types'
 
 // Экспорт «в формате мега-таблицы» (см. private/Мега_таблица_договоры_НИОКР…xlsx, листы «Проекты» и
 // «Платежи») — те же заголовки колонок, чтобы файл можно было позже прогнать через тот же импорт-скрипт
@@ -12,7 +12,7 @@ import type { Project, ProjectContract, ProjectPayment } from '@/types'
 // партнёры) — оставлены пустыми, не выдумываем.
 
 const SELECT =
-  '*, contracts:project_contracts(*), stages:project_stages(*), payments:project_payments(*)'
+  '*, contracts:project_contracts(*), stages:project_stages(*, claims:project_claims(*)), payments:project_payments(*)'
 
 const STATUS_LABEL: Record<Project['status'], string> = {
   active: 'Продолжаем',
@@ -28,6 +28,27 @@ function formatDate(d: string | null | undefined) {
 // у нас это список [{number, date}], собираем обратно в тот же текстовый формат для экспорта.
 function formatAdditionalAgreements(list: { number: string; date: string | null }[] | undefined) {
   return (list ?? []).map((a) => `№ ${a.number} от ${formatDate(a.date)}`).join('\n')
+}
+
+function formatRub(n: number | null | undefined) {
+  return n ? new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 }).format(n) : ''
+}
+
+// Требования о возврате хранятся в project_claims (по этапу их может быть несколько, редко —
+// обычно 0-1); для мега-таблицы, где нет отдельного листа под это, сводим в одну ячейку текстом,
+// несколько требований на этапе — через перевод строки, как и доп.соглашения.
+function formatClaims(claims: ProjectClaim[] | undefined) {
+  return (claims ?? [])
+    .map((c) => {
+      const sum = (Number(c.claim_balance) || 0) + (Number(c.claim_misuse_amount) || 0) + (Number(c.claim_noncompliance_amount) || 0)
+      const head = `№ ${c.claim_number || '—'} от ${formatDate(c.claim_date)}: ${formatRub(sum)} ₽` +
+        ` (остаток ${formatRub(c.claim_balance)}, нецелевой расход ${formatRub(c.claim_misuse_amount)}, несоответствие ${formatRub(c.claim_noncompliance_amount)})`
+      const payments = c.claim_execution_payments ?? []
+      if (payments.length === 0) return head + ' — не исполнено'
+      const execText = payments.map((p) => `${formatDate(p.date)} — ${formatRub(p.amount)} ₽`).join('; ')
+      return `${head} — исполнено: ${execText}`
+    })
+    .join('\n')
 }
 
 function contractFor(contracts: ProjectContract[], year: number) {
@@ -118,16 +139,25 @@ export async function GET() {
       'Номер карточки проекта в ЕГИСУ НИОКТР': p.egisu_number,
       'Номер грантового договора 2024 года': c2024?.contract_number ?? '',
       'Дата грантового договора 2024 года': formatDate(c2024?.contract_date),
+      'Номер счёта 2024 года': c2024?.invoice_number ?? '',
+      'АКР 2024 года': c2024?.akr ?? '',
       'Реквизиты дополнительных соглашений к договору 2024 года': formatAdditionalAgreements(c2024?.additional_agreements),
       'Номер грантового договора 2025 года': c2025?.contract_number ?? '',
       'Дата грантового договора 2025 года': formatDate(c2025?.contract_date),
+      'Номер счёта 2025 года': c2025?.invoice_number ?? '',
+      'АКР 2025 года': c2025?.akr ?? '',
       'Реквизиты дополнительных соглашений к договору 2025 года': formatAdditionalAgreements(c2025?.additional_agreements),
       'Номер грантового договора 2026 года': c2026?.contract_number ?? '',
       'Дата грантового договора 2026 года': formatDate(c2026?.contract_date),
+      'Номер счёта 2026 года': c2026?.invoice_number ?? '',
+      'АКР 2026 года': c2026?.akr ?? '',
       'Реквизиты дополнительных соглашений к договору 2026 года': formatAdditionalAgreements(c2026?.additional_agreements),
       'Окончание этапа 1': formatDate(stage(1)?.end_date),
       'Окончание этапа 2': formatDate(stage(2)?.end_date),
       'Окончание этапа 3': formatDate(stage(3)?.end_date),
+      'Требование о возврате — этап 1': formatClaims(stage(1)?.claims),
+      'Требование о возврате — этап 2': formatClaims(stage(2)?.claims),
+      'Требование о возврате — этап 3': formatClaims(stage(3)?.claims),
       'Сумма гранта из сводной': grantTotal || '',
       'Обязательства 2024': obligationByYear[2024] || '',
       'Оплачено 2024': paidByYear[2024] || '',
