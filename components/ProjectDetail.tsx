@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { ChecklistTrack, Employee, Project, ProjectChecklistItem, ProjectClaim, ProjectContract, ProjectPayment, ProjectStage } from '@/types'
+import type { Employee, Project, ProjectChecklistItem, ProjectClaim, ProjectContract, ProjectPayment, ProjectStage } from '@/types'
 import { isStageClosed } from '@/lib/project-checklist-templates'
 import { trackStatus } from '@/lib/project-status'
 import ProjectChecklist from '@/components/ProjectChecklist'
@@ -511,12 +511,6 @@ function ContractsCard({
   )
 }
 
-function lastCompletedStep(items: ProjectChecklistItem[], track: ChecklistTrack) {
-  return [...items]
-    .filter((i) => i.track === track && i.done)
-    .sort((a, b) => b.step_order - a.step_order)[0] ?? null
-}
-
 function ClosedStageSummary({
   projectId,
   stage,
@@ -538,8 +532,8 @@ function ClosedStageSummary({
 }) {
   const [expanded, setExpanded] = useState(false)
   const items = stage.checklist_items ?? []
-  const techLast = lastCompletedStep(items, 'technical')
-  const finLast = lastCompletedStep(items, 'financial')
+  const techStatus = trackStatus(stage, 'technical')
+  const finStatus = trackStatus(stage, 'financial')
   const techItems = items.filter((i) => i.track === 'technical')
   const finItems = items.filter((i) => i.track === 'financial')
 
@@ -554,15 +548,11 @@ function ClosedStageSummary({
       <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <div className="text-xs font-medium text-ink-soft">Техническая приёмка</div>
-          <div className="mt-0.5 text-sm text-done">
-            {techLast ? `${techLast.title}${techLast.target_date ? ' · ' + formatDate(techLast.target_date) : ''}` : '—'}
-          </div>
+          <div className="mt-0.5 text-sm text-done">{techStatus.text}</div>
         </div>
         <div>
           <div className="text-xs font-medium text-ink-soft">Финансовая приёмка</div>
-          <div className="mt-0.5 text-sm text-done">
-            {finLast ? `${finLast.title}${finLast.target_date ? ' · ' + formatDate(finLast.target_date) : ''}` : '—'}
-          </div>
+          <div className="mt-0.5 text-sm text-done">{finStatus.text}</div>
         </div>
       </div>
 
