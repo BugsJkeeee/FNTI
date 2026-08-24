@@ -545,14 +545,14 @@ function ClosedStageSummary({
           {expanded ? 'Свернуть' : 'Развернуть все шаги'}
         </button>
       </div>
-      <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="mt-2 grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
         <div>
-          <div className="text-xs font-medium text-ink-soft">Техническая приёмка</div>
-          <div className="mt-0.5 text-sm text-done">{techStatus.text}</div>
+          <div className="font-medium text-ink-soft">Техническая приёмка</div>
+          <div className="mt-0.5 text-done">{techStatus.text}</div>
         </div>
         <div>
-          <div className="text-xs font-medium text-ink-soft">Финансовая приёмка</div>
-          <div className="mt-0.5 text-sm text-done">{finStatus.text}</div>
+          <div className="font-medium text-ink-soft">Финансовая приёмка</div>
+          <div className="mt-0.5 text-done">{finStatus.text}</div>
         </div>
       </div>
 
