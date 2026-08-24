@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import * as XLSX from 'xlsx'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentEmployee } from '@/lib/current-employee'
-import type { Project, ProjectClaim, ProjectContract, ProjectPayment } from '@/types'
+import type { Project, ProjectContract, ProjectPayment } from '@/types'
 
 // Экспорт «в формате мега-таблицы» (см. private/Мега_таблица_договоры_НИОКР…xlsx, листы «Проекты» и
 // «Платежи») — те же заголовки колонок, чтобы файл можно было позже прогнать через тот же импорт-скрипт
@@ -28,27 +28,6 @@ function formatDate(d: string | null | undefined) {
 // у нас это список [{number, date}], собираем обратно в тот же текстовый формат для экспорта.
 function formatAdditionalAgreements(list: { number: string; date: string | null }[] | undefined) {
   return (list ?? []).map((a) => `№ ${a.number} от ${formatDate(a.date)}`).join('\n')
-}
-
-function formatRub(n: number | null | undefined) {
-  return n ? new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 }).format(n) : ''
-}
-
-// Требования о возврате хранятся в project_claims (по этапу их может быть несколько, редко —
-// обычно 0-1); для мега-таблицы, где нет отдельного листа под это, сводим в одну ячейку текстом,
-// несколько требований на этапе — через перевод строки, как и доп.соглашения.
-function formatClaims(claims: ProjectClaim[] | undefined) {
-  return (claims ?? [])
-    .map((c) => {
-      const sum = (Number(c.claim_balance) || 0) + (Number(c.claim_misuse_amount) || 0) + (Number(c.claim_noncompliance_amount) || 0)
-      const head = `№ ${c.claim_number || '—'} от ${formatDate(c.claim_date)}: ${formatRub(sum)} ₽` +
-        ` (остаток ${formatRub(c.claim_balance)}, нецелевой расход ${formatRub(c.claim_misuse_amount)}, несоответствие ${formatRub(c.claim_noncompliance_amount)})`
-      const payments = c.claim_execution_payments ?? []
-      if (payments.length === 0) return head + ' — не исполнено'
-      const execText = payments.map((p) => `${formatDate(p.date)} — ${formatRub(p.amount)} ₽`).join('; ')
-      return `${head} — исполнено: ${execText}`
-    })
-    .join('\n')
 }
 
 function contractFor(contracts: ProjectContract[], year: number) {
@@ -155,9 +134,6 @@ export async function GET() {
       'Окончание этапа 1': formatDate(stage(1)?.end_date),
       'Окончание этапа 2': formatDate(stage(2)?.end_date),
       'Окончание этапа 3': formatDate(stage(3)?.end_date),
-      'Требование о возврате — этап 1': formatClaims(stage(1)?.claims),
-      'Требование о возврате — этап 2': formatClaims(stage(2)?.claims),
-      'Требование о возврате — этап 3': formatClaims(stage(3)?.claims),
       'Сумма гранта из сводной': grantTotal || '',
       'Обязательства 2024': obligationByYear[2024] || '',
       'Оплачено 2024': paidByYear[2024] || '',
@@ -230,6 +206,48 @@ export async function GET() {
     }))
   )
 
+  // ---------- Лист «Возвраты» ----------
+  // Каждое требование о возврате — отдельная(ые) строка(и): если оно исполнено несколькими
+  // платежами, на каждый платёж своя строка (поля самого требования повторяются, как на листе
+  // «Платежи»), чтобы можно было фильтровать по любому полю — и по параметрам требования, и по
+  // отдельному платежу. Не исполненные (или без единого платежа) требования — одна строка,
+  // колонки платежа пустые.
+  const claimRows = projects.flatMap((p) => {
+    const stages = [...(p.stages ?? [])].sort((a, b) => a.stage_number - b.stage_number)
+    return stages.flatMap((s) => {
+      const claims = s.claims ?? []
+      return claims.flatMap((c) => {
+        const total = (Number(c.claim_balance) || 0) + (Number(c.claim_misuse_amount) || 0) + (Number(c.claim_noncompliance_amount) || 0)
+        const payments = c.claim_execution_payments ?? []
+        const paidTotal = payments.reduce((acc, pay) => acc + (Number(pay.amount) || 0), 0)
+        const status = payments.length === 0 ? 'Не исполнено' : paidTotal >= total ? 'Исполнено' : 'Исполнено частично'
+
+        const base = {
+          project_id: externalId(p),
+          'Шифр': p.code,
+          'ID PM': p.number,
+          'Волна': p.wave,
+          'Исполнитель': p.executor_short,
+          'Этап': s.stage_number,
+          'Дата требования': formatDate(c.claim_date),
+          'Номер требования': c.claim_number,
+          'Остаток, руб.': c.claim_balance ?? '',
+          'Нецелевой расход, руб.': c.claim_misuse_amount ?? '',
+          'Несоответствие требованиям договора, руб.': c.claim_noncompliance_amount ?? '',
+          'Сумма требования (итого), руб.': total || '',
+          'Статус исполнения': status,
+        }
+
+        function withPayment(date: string | null, amount: number | string) {
+          return { ...base, 'Дата исполнения': formatDate(date), 'Сумма исполнения, руб.': amount }
+        }
+
+        if (payments.length === 0) return [withPayment(null, '')]
+        return payments.map((pay) => withPayment(pay.date, pay.amount ?? ''))
+      })
+    })
+  })
+
   const workbook = XLSX.utils.book_new()
 
   const projectSheet = XLSX.utils.json_to_sheet(projectRows)
@@ -239,6 +257,10 @@ export async function GET() {
   const paymentSheet = XLSX.utils.json_to_sheet(paymentRows)
   paymentSheet['!cols'] = Object.keys(paymentRows[0] ?? {}).map((key) => ({ wch: Math.min(Math.max(key.length, 10), 40) }))
   XLSX.utils.book_append_sheet(workbook, paymentSheet, 'Платежи')
+
+  const claimSheet = XLSX.utils.json_to_sheet(claimRows)
+  claimSheet['!cols'] = Object.keys(claimRows[0] ?? {}).map((key) => ({ wch: Math.min(Math.max(key.length, 10), 40) }))
+  XLSX.utils.book_append_sheet(workbook, claimSheet, 'Возвраты')
 
   const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' })
 
