@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import type { Employee, Priority, Status, Tag, Task } from '@/types'
+import type { Employee, Priority, ProjectOption, Status, Tag, Task } from '@/types'
 import { PriorityBadge, StatusBadge, RoleBadge, priorityLabels, statusLabels } from '@/components/Badges'
 import TaskTags from '@/components/TaskTags'
 import { getDisplayStatus, getTaskRole } from '@/lib/task-status'
@@ -13,12 +14,14 @@ export default function TaskDetail({
   employees,
   initialTags,
   availableTags,
+  projectOptions,
 }: {
   task: Task
   currentEmployee: Employee
   employees: Employee[]
   initialTags: Tag[]
   availableTags: Tag[]
+  projectOptions: ProjectOption[]
 }) {
   const router = useRouter()
   const role = getTaskRole(task, currentEmployee.id)
@@ -31,6 +34,7 @@ export default function TaskDetail({
   const [assigneeId, setAssigneeId] = useState(task.assignee_id ?? '')
   const [deadline, setDeadline] = useState(task.deadline ?? '')
   const [priority, setPriority] = useState<Priority>(task.priority)
+  const [projectId, setProjectId] = useState(task.project_id ?? '')
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
@@ -40,7 +44,7 @@ export default function TaskDetail({
       await fetch(`/api/tasks/${task.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, description, assignee_id: assigneeId, deadline, priority }),
+        body: JSON.stringify({ text, description, assignee_id: assigneeId, deadline, priority, project_id: projectId || null }),
       })
       setEditing(false)
       router.refresh()
@@ -144,6 +148,19 @@ export default function TaskDetail({
               <option value="низкий">{priorityLabels['низкий']}</option>
             </select>
           </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-ink-soft">Проект (необязательно)</label>
+            <select
+              value={projectId}
+              onChange={(e) => setProjectId(e.target.value)}
+              className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm outline-none focus:border-teal"
+            >
+              <option value="">— без проекта —</option>
+              {projectOptions.map((p) => (
+                <option key={p.id} value={p.id}>{p.code || `№${p.number}`}</option>
+              ))}
+            </select>
+          </div>
           <div className="flex gap-2">
             <button
               onClick={handleSave}
@@ -173,6 +190,14 @@ export default function TaskDetail({
         <span>Автор: {task.author?.name ?? '—'}</span>
         <span>Исполнитель: {task.assignee?.name ?? '—'}</span>
         <span>Срок: {task.deadline ? new Date(task.deadline).toLocaleDateString('ru-RU') : '—'}</span>
+        {task.project && (
+          <span>
+            Проект:{' '}
+            <Link href={`/projects/${task.project.id}`} className="text-teal hover:opacity-80">
+              {task.project.code || `№${task.project.number}`}
+            </Link>
+          </span>
+        )}
       </div>
 
       <TaskTags taskId={task.id} initialTags={initialTags} availableTags={availableTags} />

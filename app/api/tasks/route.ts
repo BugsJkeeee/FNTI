@@ -12,7 +12,9 @@ export async function GET() {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from('tasks')
-    .select('*, author:employees!tasks_author_id_fkey(id, name, specialization), assignee:employees!tasks_assignee_id_fkey(id, name, specialization)')
+    .select(
+      '*, author:employees!tasks_author_id_fkey(id, name, specialization), assignee:employees!tasks_assignee_id_fkey(id, name, specialization), project:projects(id, number, wave, code)'
+    )
     .order('created_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -40,9 +42,10 @@ export async function POST(req: NextRequest) {
       deadline: body.deadline,
       priority: body.priority,
       ai_explanation: body.ai_explanation ?? null,
+      project_id: body.project_id ?? null,
       status: 'новая',
     })
-    .select()
+    .select('*, project:projects(id, number, wave, code)')
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

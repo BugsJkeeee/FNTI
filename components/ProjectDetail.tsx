@@ -2,12 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { Employee, Project, ProjectChecklistItem, ProjectClaim, ProjectContract, ProjectPayment, ProjectStage } from '@/types'
+import type { Employee, Project, ProjectChecklistItem, ProjectClaim, ProjectContract, ProjectPayment, ProjectStage, Task } from '@/types'
 import { isStageClosed } from '@/lib/project-checklist-templates'
 import { trackStatus } from '@/lib/project-status'
 import ProjectChecklist from '@/components/ProjectChecklist'
 import ProjectComments from '@/components/ProjectComments'
 import StageClaimsList from '@/components/StageClaimInfo'
+import TaskForm from '@/components/TaskForm'
+import TaskCard from '@/components/TaskCard'
 
 function formatRub(n: number | null) {
   if (n === null) return '—'
@@ -1037,12 +1039,52 @@ function AddStageForm({ projectId, onAdded }: { projectId: string; onAdded: (sta
   )
 }
 
+function ProjectTasksSection({
+  projectId,
+  currentEmployee,
+  employees,
+  initialTasks,
+}: {
+  projectId: string
+  currentEmployee: Employee
+  employees: Employee[]
+  initialTasks: Task[]
+}) {
+  const [tasks, setTasks] = useState(initialTasks)
+
+  async function refresh() {
+    const res = await fetch(`/api/projects/${projectId}/tasks`)
+    if (res.ok) setTasks(await res.json())
+  }
+
+  return (
+    <div className="rounded-2xl border border-line bg-white p-5">
+      <h2 className="font-display text-base font-semibold text-ink">Задачи</h2>
+      <div className="mt-3 space-y-3">
+        <TaskForm employees={employees} defaultProjectId={projectId} onCreated={refresh} />
+        {tasks.length === 0 && <p className="text-sm text-ink-soft">Задач по проекту пока нет.</p>}
+        {tasks.length > 0 && (
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {tasks.map((task) => (
+              <TaskCard key={task.id} task={task} currentEmployeeId={currentEmployee.id} compact />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function ProjectDetail({
   project: initialProject,
   currentEmployee,
+  employees,
+  initialTasks,
 }: {
   project: Project
   currentEmployee: Employee
+  employees: Employee[]
+  initialTasks: Task[]
 }) {
   const [project, setProject] = useState(initialProject)
   const [contracts, setContracts] = useState(initialProject.contracts ?? [])
@@ -1124,6 +1166,8 @@ export default function ProjectDetail({
           <AddStageForm projectId={project.id} onAdded={(stage) => setStages((prev) => [...prev, stage])} />
         </div>
       </section>
+
+      <ProjectTasksSection projectId={project.id} currentEmployee={currentEmployee} employees={employees} initialTasks={initialTasks} />
 
       <SystemInfoSection
         project={project}

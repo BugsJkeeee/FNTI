@@ -26,11 +26,23 @@ export interface Task {
   ai_explanation: string | null
   created_at: string
   updated_at: string
+  project_id: string | null
   author?: Employee
   assignee?: Employee
+  project?: { id: string; number: number; wave: number; code: string } | null
   comment_count?: number
   has_unread_comment?: boolean
   tags?: Tag[]
+}
+
+// Лёгкий список проектов для выпадающих селектов (постановка/фильтр задачи по проекту) —
+// без тяжёлых вложенных этапов/чек-листов/платежей, которые тянет основной GET /api/projects.
+export interface ProjectOption {
+  id: string
+  number: number
+  wave: number
+  code: string
+  status: 'active' | 'terminating' | 'terminated'
 }
 
 export interface Tag {

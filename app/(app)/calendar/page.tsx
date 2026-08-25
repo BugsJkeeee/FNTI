@@ -29,7 +29,9 @@ export default async function CalendarPage() {
 
   const { data: tasks } = await supabase
     .from('tasks')
-    .select('*, author:employees!tasks_author_id_fkey(id, name, specialization), assignee:employees!tasks_assignee_id_fkey(id, name, specialization)')
+    .select(
+      '*, author:employees!tasks_author_id_fkey(id, name, specialization), assignee:employees!tasks_assignee_id_fkey(id, name, specialization), project:projects(id, number, wave, code)'
+    )
     .not('deadline', 'is', null)
     .neq('status', 'выполнена')
     .order('deadline', { ascending: true })

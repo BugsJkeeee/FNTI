@@ -63,6 +63,11 @@ export default function TaskCard({
         <RoleBadge role={role} />
         <PriorityBadge priority={task.priority} />
         <StatusBadge status={displayStatus} />
+        {task.project && (
+          <span className="inline-flex items-center rounded-full border border-line px-2 py-0.5 font-mono text-[11px] font-medium text-ink-soft">
+            {task.project.code || `№${task.project.number}`}
+          </span>
+        )}
       </div>
 
       <div className={`flex items-center justify-between gap-3 font-mono text-xs text-ink-soft ${compact ? 'mt-1' : 'mt-2'}`}>

@@ -25,13 +25,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: 'Редактировать может только автор или исполнитель' }, { status: 403 })
   }
 
-  const allowedFields = ['text', 'description', 'assignee_id', 'deadline', 'priority', 'status']
+  const allowedFields = ['text', 'description', 'assignee_id', 'deadline', 'priority', 'status', 'project_id']
   const updates: Record<string, unknown> = {}
   allowedFields.forEach((key) => {
     if (key in body) updates[key] = body[key]
   })
 
-  const { data, error } = await supabase.from('tasks').update(updates).eq('id', id).select().single()
+  const { data, error } = await supabase
+    .from('tasks')
+    .update(updates)
+    .eq('id', id)
+    .select('*, project:projects(id, number, wave, code)')
+    .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   await supabase.from('task_history').insert({

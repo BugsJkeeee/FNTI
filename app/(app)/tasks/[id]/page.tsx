@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getCurrentEmployee } from '@/lib/current-employee'
 import TaskDetail from '@/components/TaskDetail'
 import CommentSection from '@/components/CommentSection'
-import type { Comment, Employee, Tag, Task } from '@/types'
+import type { Comment, Employee, ProjectOption, Tag, Task } from '@/types'
 
 export default async function TaskPage({
   params,
@@ -28,7 +28,9 @@ export default async function TaskPage({
 
   const { data: task } = await supabase
     .from('tasks')
-    .select('*, author:employees!tasks_author_id_fkey(id, name, specialization), assignee:employees!tasks_assignee_id_fkey(id, name, specialization)')
+    .select(
+      '*, author:employees!tasks_author_id_fkey(id, name, specialization), assignee:employees!tasks_assignee_id_fkey(id, name, specialization), project:projects(id, number, wave, code)'
+    )
     .eq('id', id)
     .single()
 
@@ -47,6 +49,13 @@ export default async function TaskPage({
 
   const { data: allTags } = await supabase.from('tags').select('*').order('name')
 
+  const { data: projectOptions } = await supabase
+    .from('projects')
+    .select('id, number, wave, code, status')
+    .order('wave', { ascending: true })
+    .order('display_order', { ascending: true, nullsFirst: false })
+    .order('number', { ascending: true })
+
   await supabase
     .from('task_views')
     .upsert({ task_id: id, employee_id: employee!.id, viewed_at: new Date().toISOString() })
@@ -61,6 +70,7 @@ export default async function TaskPage({
         employees={(employees as Employee[]) ?? []}
         initialTags={tags}
         availableTags={(allTags as Tag[]) ?? []}
+        projectOptions={(projectOptions as ProjectOption[]) ?? []}
       />
 
       <div className="rounded-2xl border border-line bg-white p-6">

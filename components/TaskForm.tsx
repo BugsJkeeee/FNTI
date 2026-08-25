@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import type { AiSuggestion, Employee, Priority, Tag } from '@/types'
+import type { AiSuggestion, Employee, Priority, ProjectOption, Tag } from '@/types'
 import { priorityLabels } from '@/components/Badges'
 import Spinner from '@/components/Spinner'
 
@@ -12,10 +12,12 @@ function todayISO() {
 export default function TaskForm({
   employees,
   defaultAssigneeId,
+  defaultProjectId,
   onCreated,
 }: {
   employees: Employee[]
   defaultAssigneeId?: string
+  defaultProjectId?: string
   onCreated: () => void
 }) {
   const [expanded, setExpanded] = useState(false)
@@ -35,12 +37,21 @@ export default function TaskForm({
   const [manualError, setManualError] = useState<string | null>(null)
   const [availableTags, setAvailableTags] = useState<Tag[]>([])
   const [manualTagIds, setManualTagIds] = useState<string[]>([])
+  const [availableProjects, setAvailableProjects] = useState<ProjectOption[]>([])
+  const [manualProjectId, setManualProjectId] = useState(defaultProjectId ?? '')
   const submittingRef = useRef(false)
 
   useEffect(() => {
     fetch('/api/tags')
       .then((res) => (res.ok ? res.json() : []))
       .then(setAvailableTags)
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    fetch('/api/projects/options')
+      .then((res) => (res.ok ? res.json() : []))
+      .then(setAvailableProjects)
       .catch(() => {})
   }, [])
 
@@ -66,6 +77,7 @@ export default function TaskForm({
     setManualDeadline(todayISO())
     setManualPriority('обычный')
     setManualTagIds([])
+    setManualProjectId(defaultProjectId ?? '')
     setManualError(null)
     setManualOpen(true)
   }
@@ -105,6 +117,7 @@ export default function TaskForm({
           deadline: suggestion.deadline,
           priority: suggestion.priority ?? 'обычный',
           ai_explanation: suggestion.explanation ?? null,
+          project_id: defaultProjectId ?? null,
         }),
       })
       const newTask = await createRes.json()
@@ -159,6 +172,7 @@ export default function TaskForm({
           deadline: manualDeadline,
           priority: manualPriority,
           ai_explanation: null,
+          project_id: manualProjectId || null,
         }),
       })
       if (!res.ok) {
@@ -314,6 +328,22 @@ export default function TaskForm({
                   </select>
                 </div>
               </div>
+
+              {availableProjects.length > 0 && (
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-ink-soft">Проект (необязательно)</label>
+                  <select
+                    value={manualProjectId}
+                    onChange={(e) => setManualProjectId(e.target.value)}
+                    className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm outline-none focus:border-teal"
+                  >
+                    <option value="">— без проекта —</option>
+                    {availableProjects.map((p) => (
+                      <option key={p.id} value={p.id}>{p.code || `№${p.number}`}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               {availableTags.length > 0 && (
                 <div>

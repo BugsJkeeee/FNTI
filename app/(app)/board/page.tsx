@@ -11,7 +11,9 @@ export default async function BoardPage() {
 
   const { data: tasks } = await supabase
     .from('tasks')
-    .select('*, author:employees!tasks_author_id_fkey(id, name, specialization), assignee:employees!tasks_assignee_id_fkey(id, name, specialization)')
+    .select(
+      '*, author:employees!tasks_author_id_fkey(id, name, specialization), assignee:employees!tasks_assignee_id_fkey(id, name, specialization), project:projects(id, number, wave, code)'
+    )
     .order('created_at', { ascending: false })
 
   const { data: employees } = await supabase.from('employees').select('*').order('name')
