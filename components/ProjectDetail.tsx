@@ -482,12 +482,12 @@ function ContractsCard({
 
       {adding ? (
         <form onSubmit={handleAdd} className="mt-3 flex flex-wrap items-end gap-2">
-          <input value={number} onChange={(e) => setNumber(e.target.value)} placeholder="Номер договора" className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-xs outline-none focus:border-teal" />
-          <input value={date} onChange={(e) => setDate(e.target.value)} type="date" className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-xs outline-none focus:border-teal" />
+          <input value={number} onChange={(e) => setNumber(e.target.value)} placeholder="Номер договора" className="w-36 rounded-lg border border-line bg-paper px-2.5 py-1.5 text-xs outline-none focus:border-teal" />
+          <input value={date} onChange={(e) => setDate(e.target.value)} type="date" className="w-36 rounded-lg border border-line bg-paper px-2.5 py-1.5 text-xs outline-none focus:border-teal" />
           <select
             value={stageNumber}
             onChange={(e) => setStageNumber(e.target.value)}
-            className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-xs outline-none focus:border-teal"
+            className="w-24 rounded-lg border border-line bg-paper px-2.5 py-1.5 text-xs outline-none focus:border-teal"
           >
             {(stageNumbers.length ? stageNumbers : [1, 2, 3]).map((n) => (
               <option key={n} value={n}>Этап {n}</option>
