@@ -504,7 +504,13 @@ function ContractsCard({
           <button type="submit" disabled={saving} className="rounded-lg border border-line px-2.5 py-1.5 text-xs text-ink-soft transition hover:border-teal hover:text-teal disabled:opacity-50">
             {saving ? 'Добавляю…' : 'Добавить'}
           </button>
-          <button type="button" onClick={() => setAdding(false)} className="text-xs text-ink-soft hover:text-ink">Отмена</button>
+          <button
+            type="button"
+            onClick={() => setAdding(false)}
+            className="rounded-lg border border-line px-2.5 py-1.5 text-xs text-ink-soft transition hover:border-urgent hover:text-urgent"
+          >
+            Отмена
+          </button>
         </form>
       ) : (
         <button onClick={() => setAdding(true)} className="mt-3 text-xs text-teal hover:opacity-80">+ добавить договор</button>
