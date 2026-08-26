@@ -3,7 +3,8 @@ import { getCurrentEmployee } from '@/lib/current-employee'
 import GlossaryForm from '@/components/GlossaryForm'
 import GlossaryList from '@/components/GlossaryList'
 import TagsSection from '@/components/TagsSection'
-import type { GlossaryEntry, Tag } from '@/types'
+import DirectionSubsidyPlans from '@/components/DirectionSubsidyPlans'
+import type { DirectionSubsidyPlan, GlossaryEntry, Tag } from '@/types'
 
 export default async function GlossaryPage() {
   const employee = await getCurrentEmployee()
@@ -19,6 +20,18 @@ export default async function GlossaryPage() {
   const { data: tagsData } = await supabase.from('tags').select('*').order('created_at', { ascending: false })
   const tags = (tagsData as Tag[]) ?? []
 
+  const { data: subsidyPlansData } = await supabase
+    .from('direction_subsidy_plans')
+    .select('*')
+    .order('tech_direction')
+    .order('year')
+  const subsidyPlans = (subsidyPlansData as DirectionSubsidyPlan[]) ?? []
+
+  const { data: directionsData } = await supabase.from('projects').select('tech_direction')
+  const directions = [...new Set((directionsData ?? []).map((p) => p.tech_direction).filter(Boolean))].sort((a, b) =>
+    a.localeCompare(b, 'ru')
+  )
+
   return (
     <div className="space-y-4">
       <div>
@@ -29,6 +42,8 @@ export default async function GlossaryPage() {
       </div>
 
       <TagsSection initialTags={tags} />
+
+      <DirectionSubsidyPlans plans={subsidyPlans} directions={directions} />
 
       <GlossaryForm authorId={employee!.id} />
 

@@ -324,7 +324,12 @@ function ContractRow({ projectId, contract, onSaved }: { projectId: string; cont
             >
               {savingInvoice ? 'Сохраняю…' : 'Сохранить'}
             </button>
-            <button onClick={() => setEditingInvoice(false)} className="text-xs text-ink-soft hover:text-ink">Отмена</button>
+            <button
+              onClick={() => setEditingInvoice(false)}
+              className="rounded-md border border-line px-2 py-1 text-xs text-ink-soft transition hover:border-urgent hover:text-urgent"
+            >
+              Отмена
+            </button>
           </>
         ) : contract.invoice_number ? (
           <button onClick={startEditingInvoice} className="font-mono text-xs text-ink-soft transition hover:text-teal">
@@ -351,7 +356,12 @@ function ContractRow({ projectId, contract, onSaved }: { projectId: string; cont
             >
               {saving ? 'Сохраняю…' : 'Сохранить'}
             </button>
-            <button onClick={() => setEditing(false)} className="text-xs text-ink-soft hover:text-ink">Отмена</button>
+            <button
+              onClick={() => setEditing(false)}
+              className="rounded-md border border-line px-2 py-1 text-xs text-ink-soft transition hover:border-urgent hover:text-urgent"
+            >
+              Отмена
+            </button>
           </>
         ) : contract.akr ? (
           <button onClick={startEditing} className="font-mono text-xs text-ink-soft transition hover:text-teal">
@@ -690,7 +700,12 @@ function StageCard({
             <input type="number" value={cost} onChange={(e) => setCost(e.target.value)} className="w-32 rounded-lg border border-line bg-paper px-2.5 py-1.5 text-xs outline-none focus:border-teal" />
           </div>
           <button onClick={saveDates} className="rounded-lg bg-teal px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">Сохранить</button>
-          <button onClick={() => setEditingDates(false)} className="text-xs text-ink-soft hover:text-ink">Отмена</button>
+          <button
+            onClick={() => setEditingDates(false)}
+            className="rounded-lg border border-line px-3 py-1.5 text-xs text-ink-soft transition hover:border-urgent hover:text-urgent"
+          >
+            Отмена
+          </button>
         </div>
       ) : (
         !closed && (
@@ -780,56 +795,314 @@ function LegalInfoCard({ project }: { project: Project }) {
   )
 }
 
-function FinancingCard({ payments }: { payments: ProjectPayment[] }) {
-  if (!payments.length) return null
+type PaymentEventDraft = { date: string; amount: string }
 
-  const byYear = new Map<number, { obligation: number; paid: number; allPaid: boolean }>()
-  for (const p of payments) {
-    const year = p.plan_year ?? 0
-    const cur = byYear.get(year) ?? { obligation: 0, paid: 0, allPaid: true }
-    cur.obligation += Number(p.obligation_amount) || 0
-    cur.paid += Number(p.paid_amount) || 0
-    cur.allPaid = cur.allPaid && p.actually_paid
-    byYear.set(year, cur)
+function eventsToDraft(payment: ProjectPayment): PaymentEventDraft[] {
+  return payment.payment_events.length > 0
+    ? payment.payment_events.map((e) => ({ date: e.date ?? '', amount: String(e.amount) }))
+    : [{ date: '', amount: '' }]
+}
+
+function PaymentRow({
+  projectId,
+  payment,
+  onSaved,
+  onDeleted,
+}: {
+  projectId: string
+  payment: ProjectPayment
+  onSaved: (p: ProjectPayment) => void
+  onDeleted: (id: string) => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [events, setEvents] = useState<PaymentEventDraft[]>(() => eventsToDraft(payment))
+  const [saving, setSaving] = useState(false)
+
+  function startEdit() {
+    setEvents(eventsToDraft(payment))
+    setEditing(true)
   }
-  const years = [...byYear.keys()].sort((a, b) => a - b)
+
+  function setEventField(i: number, field: 'date' | 'amount', value: string) {
+    setEvents((prev) => prev.map((row, idx) => (idx === i ? { ...row, [field]: value } : row)))
+  }
+
+  async function save() {
+    setSaving(true)
+    try {
+      const res = await fetch(`/api/projects/${projectId}/payments/${payment.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          payment_events: events
+            .filter((e) => e.date || e.amount)
+            .map((e) => ({ date: e.date || null, amount: e.amount ? Number(e.amount) : 0 })),
+        }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        onSaved(data)
+        setEditing(false)
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!confirm('Удалить платёж?')) return
+    const res = await fetch(`/api/projects/${projectId}/payments/${payment.id}`, { method: 'DELETE' })
+    if (res.ok) onDeleted(payment.id)
+  }
+
+  if (editing) {
+    return (
+      <tr className="border-t border-line">
+        <td className="py-1.5 pr-6 align-top font-mono text-ink">{payment.plan_year || '—'}</td>
+        <td className="py-1.5 pr-6 align-top font-mono text-ink-soft">{payment.contract_number || '—'}</td>
+        <td className="py-1.5 pr-6 align-top text-ink">{formatRub(Number(payment.obligation_amount) || 0)}</td>
+        <td className="py-1.5 pr-6" colSpan={2}>
+          <div className="space-y-1">
+            {events.map((ev, i) => (
+              <div key={i} className="flex items-center gap-1">
+                <input
+                  type="date"
+                  value={ev.date}
+                  onChange={(e) => setEventField(i, 'date', e.target.value)}
+                  className="rounded-md border border-line bg-paper px-1.5 py-0.5 font-mono text-xs text-ink-soft outline-none focus:border-teal"
+                />
+                <input
+                  type="number"
+                  placeholder="Сумма"
+                  value={ev.amount}
+                  onChange={(e) => setEventField(i, 'amount', e.target.value)}
+                  className="w-28 rounded-md border border-line bg-paper px-1.5 py-0.5 text-xs outline-none focus:border-teal"
+                />
+                {events.length > 1 && (
+                  <button
+                    onClick={() => setEvents((arr) => arr.filter((_, idx) => idx !== i))}
+                    className="text-xs text-ink-soft hover:text-urgent"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+            <div className="flex items-center gap-2 pt-0.5">
+              <button
+                type="button"
+                onClick={() => setEvents((prev) => [...prev, { date: '', amount: '' }])}
+                className="text-xs text-teal hover:opacity-80"
+              >
+                + платёж
+              </button>
+              <button
+                onClick={save}
+                disabled={saving}
+                className="rounded-md border border-line px-2 py-0.5 text-xs text-ink-soft transition hover:border-teal hover:text-teal disabled:opacity-50"
+              >
+                {saving ? '…' : 'Сохранить'}
+              </button>
+              <button
+                onClick={() => setEditing(false)}
+                className="rounded-md border border-line px-2 py-0.5 text-xs text-ink-soft transition hover:border-urgent hover:text-urgent"
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+        </td>
+        <td className="py-1.5 align-top">
+          <button onClick={handleDelete} className="text-ink-soft transition hover:text-urgent">
+            удалить
+          </button>
+        </td>
+      </tr>
+    )
+  }
+
+  return (
+    <tr className="border-t border-line">
+      <td className="py-1 pr-6 font-mono text-ink">{payment.plan_year || '—'}</td>
+      <td className="py-1 pr-6 font-mono text-ink-soft">{payment.contract_number || '—'}</td>
+      <td className="py-1 pr-6 text-ink">{formatRub(Number(payment.obligation_amount) || 0)}</td>
+      <td className="py-1 pr-6">
+        <button onClick={startEdit} className="text-ink transition hover:text-teal">
+          {formatRub(Number(payment.paid_amount) || 0)}
+        </button>
+      </td>
+      <td className="py-1 pr-6 text-ink-soft">
+        {payment.payment_events.length === 0 && 'ожидается'}
+        {payment.payment_events.length === 1 && `доведено ${formatDate(payment.payment_events[0].date)}`}
+        {payment.payment_events.length > 1 && (
+          <span title={payment.payment_events.map((e) => `${formatDate(e.date)} — ${formatRub(e.amount)}`).join('; ')}>
+            доведено {payment.payment_events.length} платежами
+          </span>
+        )}
+      </td>
+      <td className="py-1">
+        <button onClick={handleDelete} className="text-ink-soft transition hover:text-urgent">
+          удалить
+        </button>
+      </td>
+    </tr>
+  )
+}
+
+function AddPaymentForm({
+  projectId,
+  contracts,
+  onAdded,
+}: {
+  projectId: string
+  contracts: ProjectContract[]
+  onAdded: (p: ProjectPayment) => void
+}) {
+  const [adding, setAdding] = useState(false)
+  const [year, setYear] = useState(new Date().getFullYear().toString())
+  const [contractNumber, setContractNumber] = useState(contracts[0]?.contract_number ?? '')
+  const [obligation, setObligation] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault()
+    if (!year.trim()) return
+    setSaving(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/projects/${projectId}/payments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plan_year: Number(year),
+          contract_number: contractNumber,
+          obligation_amount: obligation ? Number(obligation) : null,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error ?? 'Не удалось добавить платёж')
+        return
+      }
+      onAdded(data)
+      setObligation('')
+      setAdding(false)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!adding) {
+    return (
+      <button onClick={() => setAdding(true)} className="mt-3 text-xs text-teal hover:opacity-80">
+        + добавить платёж
+      </button>
+    )
+  }
+
+  return (
+    <form onSubmit={handleAdd} className="mt-3 flex flex-wrap items-end gap-2">
+      <div>
+        <label className="mb-1 block text-xs text-ink-soft">Год</label>
+        <input type="number" value={year} onChange={(e) => setYear(e.target.value)} className="w-24 rounded-lg border border-line bg-paper px-2.5 py-1.5 text-xs outline-none focus:border-teal" />
+      </div>
+      <div>
+        <label className="mb-1 block text-xs text-ink-soft">Договор</label>
+        {contracts.length > 0 ? (
+          <select
+            value={contractNumber}
+            onChange={(e) => setContractNumber(e.target.value)}
+            className="w-40 rounded-lg border border-line bg-paper px-2.5 py-1.5 text-xs outline-none focus:border-teal"
+          >
+            {contracts.map((c) => (
+              <option key={c.id} value={c.contract_number}>{c.contract_number}</option>
+            ))}
+          </select>
+        ) : (
+          <input
+            value={contractNumber}
+            onChange={(e) => setContractNumber(e.target.value)}
+            placeholder="Номер договора"
+            className="w-36 rounded-lg border border-line bg-paper px-2.5 py-1.5 text-xs outline-none focus:border-teal"
+          />
+        )}
+      </div>
+      <div>
+        <label className="mb-1 block text-xs text-ink-soft">План, ₽</label>
+        <input type="number" value={obligation} onChange={(e) => setObligation(e.target.value)} className="w-32 rounded-lg border border-line bg-paper px-2.5 py-1.5 text-xs outline-none focus:border-teal" />
+      </div>
+      <button
+        type="submit"
+        disabled={saving}
+        className="rounded-lg border border-line px-2.5 py-1.5 text-xs text-ink-soft transition hover:border-teal hover:text-teal disabled:opacity-50"
+      >
+        {saving ? 'Добавляю…' : 'Добавить'}
+      </button>
+      <button
+        type="button"
+        onClick={() => setAdding(false)}
+        className="rounded-lg border border-line px-2.5 py-1.5 text-xs text-ink-soft transition hover:border-urgent hover:text-urgent"
+      >
+        Отмена
+      </button>
+      {error && <p className="w-full text-xs text-urgent">{error}</p>}
+    </form>
+  )
+}
+
+function FinancingCard({
+  projectId,
+  payments,
+  contracts,
+  onAdded,
+  onSaved,
+  onDeleted,
+}: {
+  projectId: string
+  payments: ProjectPayment[]
+  contracts: ProjectContract[]
+  onAdded: (p: ProjectPayment) => void
+  onSaved: (p: ProjectPayment) => void
+  onDeleted: (id: string) => void
+}) {
   const totalObligation = payments.reduce((a, p) => a + (Number(p.obligation_amount) || 0), 0)
   const totalPaid = payments.reduce((a, p) => a + (Number(p.paid_amount) || 0), 0)
+  const sortedPayments = [...payments].sort((a, b) => (a.plan_year ?? 0) - (b.plan_year ?? 0))
 
   return (
     <div>
       <h3 className="font-display text-base font-semibold text-ink">Финансирование</h3>
-      <div className="mt-2 overflow-x-auto">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="text-left text-ink-soft">
-              <th className="pb-1 pr-6 font-medium">Год</th>
-              <th className="pb-1 pr-6 font-medium">Обязательства</th>
-              <th className="pb-1 pr-6 font-medium">Оплачено</th>
-              <th className="pb-1 font-medium">Статус</th>
-            </tr>
-          </thead>
-          <tbody>
-            {years.map((year) => {
-              const v = byYear.get(year)!
-              return (
-                <tr key={year} className="border-t border-line">
-                  <td className="py-1 pr-6 font-mono text-ink">{year || '—'}</td>
-                  <td className="py-1 pr-6 text-ink">{formatRub(v.obligation)}</td>
-                  <td className="py-1 pr-6 text-ink">{formatRub(v.paid)}</td>
-                  <td className="py-1 text-ink-soft">{v.allPaid ? 'оплачено' : 'ожидается'}</td>
-                </tr>
-              )
-            })}
-            <tr className="border-t border-line font-medium">
-              <td className="py-1 pr-6 text-ink">Итого</td>
-              <td className="py-1 pr-6 text-ink">{formatRub(totalObligation)}</td>
-              <td className="py-1 pr-6 text-ink">{formatRub(totalPaid)}</td>
-              <td className="py-1" />
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      {payments.length === 0 ? (
+        <p className="mt-2 text-xs text-ink-soft">Платежей пока нет.</p>
+      ) : (
+        <div className="mt-2 overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="text-left text-ink-soft">
+                <th className="pb-1 pr-6 font-medium">Год</th>
+                <th className="pb-1 pr-6 font-medium">Договор</th>
+                <th className="pb-1 pr-6 font-medium">План</th>
+                <th className="pb-1 pr-6 font-medium">Факт</th>
+                <th className="pb-1 pr-6 font-medium">Статус</th>
+                <th className="pb-1 font-medium" />
+              </tr>
+            </thead>
+            <tbody>
+              {sortedPayments.map((p) => (
+                <PaymentRow key={p.id} projectId={projectId} payment={p} onSaved={onSaved} onDeleted={onDeleted} />
+              ))}
+              <tr className="border-t border-line font-semibold text-ink">
+                <td className="py-1 pr-6" colSpan={2}>Итого</td>
+                <td className="py-1 pr-6">{formatRub(totalObligation)}</td>
+                <td className="py-1 pr-6">{formatRub(totalPaid)}</td>
+                <td className="py-1" colSpan={2} />
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+      <AddPaymentForm projectId={projectId} contracts={contracts} onAdded={onAdded} />
     </div>
   )
 }
@@ -916,8 +1189,12 @@ function SystemInfoSection({
   project,
   contracts,
   stages,
+  payments,
   onContractAdded,
   onContractSaved,
+  onPaymentAdded,
+  onPaymentSaved,
+  onPaymentDeleted,
   onClaimAdded,
   onClaimSaved,
   onClaimDeleted,
@@ -925,8 +1202,12 @@ function SystemInfoSection({
   project: Project
   contracts: ProjectContract[]
   stages: ProjectStage[]
+  payments: ProjectPayment[]
   onContractAdded: (c: ProjectContract) => void
   onContractSaved: (c: ProjectContract) => void
+  onPaymentAdded: (p: ProjectPayment) => void
+  onPaymentSaved: (p: ProjectPayment) => void
+  onPaymentDeleted: (id: string) => void
   onClaimAdded: (stageId: string, c: ProjectClaim) => void
   onClaimSaved: (stageId: string, c: ProjectClaim) => void
   onClaimDeleted: (stageId: string, id: string) => void
@@ -952,7 +1233,14 @@ function SystemInfoSection({
           />
           <LegalInfoCard project={project} />
           <GrbsCard contracts={contracts} />
-          <FinancingCard payments={project.payments ?? []} />
+          <FinancingCard
+            projectId={projectId}
+            payments={payments}
+            contracts={contracts}
+            onAdded={onPaymentAdded}
+            onSaved={onPaymentSaved}
+            onDeleted={onPaymentDeleted}
+          />
           <div>
             <h3 className="font-display text-base font-semibold text-ink">Требования о возврате</h3>
             <div className="mt-2 space-y-2">
@@ -1039,7 +1327,13 @@ function AddStageForm({ projectId, onAdded }: { projectId: string; onAdded: (sta
       <button type="submit" disabled={saving} className="rounded-lg bg-teal px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50">
         {saving ? 'Создаю…' : 'Создать этап'}
       </button>
-      <button type="button" onClick={() => setExpanded(false)} className="text-sm text-ink-soft hover:text-ink">Отмена</button>
+      <button
+        type="button"
+        onClick={() => setExpanded(false)}
+        className="rounded-lg border border-line px-4 py-2 text-sm text-ink-soft transition hover:border-urgent hover:text-urgent"
+      >
+        Отмена
+      </button>
       {error && <p className="w-full text-xs text-urgent">{error}</p>}
     </form>
   )
@@ -1094,6 +1388,7 @@ export default function ProjectDetail({
 }) {
   const [project, setProject] = useState(initialProject)
   const [contracts, setContracts] = useState(initialProject.contracts ?? [])
+  const [payments, setPayments] = useState(initialProject.payments ?? [])
   const [stages, setStages] = useState(() => [...(initialProject.stages ?? [])].sort((a, b) => a.stage_number - b.stage_number))
 
   function updateStage(stageId: string, patch: Partial<ProjectStage>) {
@@ -1179,8 +1474,12 @@ export default function ProjectDetail({
         project={project}
         contracts={contracts}
         stages={stages}
+        payments={payments}
         onContractAdded={(c) => setContracts((prev) => [...prev, c])}
         onContractSaved={(c) => setContracts((prev) => prev.map((x) => (x.id === c.id ? c : x)))}
+        onPaymentAdded={(p) => setPayments((prev) => [...prev, p])}
+        onPaymentSaved={(p) => setPayments((prev) => prev.map((x) => (x.id === p.id ? p : x)))}
+        onPaymentDeleted={(id) => setPayments((prev) => prev.filter((x) => x.id !== id))}
         onClaimAdded={handleClaimAdded}
         onClaimSaved={handleClaimSaved}
         onClaimDeleted={handleClaimDeleted}

@@ -178,6 +178,9 @@ export interface ProjectPayment {
   payment_request_comment: string
   source_note: string
   comment: string
+  // Факт (paid_amount) считается сервером как сумма этого списка — не редактируется напрямую,
+  // редактируется список отдельных платежей (по аналогии с claim_execution_payments).
+  payment_events: { date: string | null; amount: number }[]
   created_at: string
   updated_at: string
 }
@@ -237,4 +240,16 @@ export interface ProjectComment {
   text: string
   created_at: string
   author?: Employee
+}
+
+// План субсидии по технологическому направлению на год — вводится вручную, отдельно от
+// суммы обязательств по уже заведённым в БД проектам (сверочная величина из документов).
+export interface DirectionSubsidyPlan {
+  id: string
+  tech_direction: string
+  year: number
+  amount: number
+  updated_by: string | null
+  created_at: string
+  updated_at: string
 }

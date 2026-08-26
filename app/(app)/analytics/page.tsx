@@ -1,49 +1,33 @@
 import { createClient } from '@/lib/supabase/server'
-import { getCurrentEmployee } from '@/lib/current-employee'
-import { attachTagInfo } from '@/lib/tags'
-import AnalyticsTable from '@/components/AnalyticsTable'
-import RealtimeTaskRefresher from '@/components/RealtimeTaskRefresher'
-import type { Employee, Task } from '@/types'
-import { getDisplayStatus } from '@/lib/task-status'
+import ProjectFinanceDashboard from '@/components/ProjectFinanceDashboard'
+import type { DirectionSubsidyPlan } from '@/types'
+import type { PaymentWithProject, ProjectForFinance } from '@/lib/project-finance'
 
 export default async function AnalyticsPage() {
-  const currentEmployee = await getCurrentEmployee()
   const supabase = await createClient()
-  const { data: tasks } = await supabase.from('tasks').select('*')
-  const { data: employees } = await supabase.from('employees').select('*').order('name')
 
-  const all = await attachTagInfo(supabase, (tasks as Task[]) ?? [])
-  const team = (employees as Employee[]) ?? []
+  const { data: projects } = await supabase
+    .from('projects')
+    .select('id, number, wave, code, status, tech_direction, stages:project_stages(id, cost, claims:project_claims(*))')
 
-  const rows = team.map((employee) => {
-    const allTasks = all.filter((t) => t.assignee_id === employee.id)
-    const activeTasks = allTasks.filter((t) => t.status !== 'выполнена')
-    const overdueTasks = allTasks.filter((t) => getDisplayStatus(t) === 'просрочена')
-    const closedTasks = allTasks.filter((t) => t.status === 'выполнена')
-    const avgDays = closedTasks.length
-      ? Math.round(
-          closedTasks.reduce((sum, t) => sum + (new Date(t.updated_at).getTime() - new Date(t.created_at).getTime()) / 86400000, 0) /
-            closedTasks.length
-        )
-      : null
+  const { data: payments } = await supabase
+    .from('project_payments')
+    .select('*, project:projects(id, number, code, wave, tech_direction, status)')
 
-    return { employee, activeTasks, closedTasks, overdueTasks, avgDays }
-  })
-
-  const totalOverdueTasks = all.filter((t) => getDisplayStatus(t) === 'просрочена')
-  const totalActiveTasks = all.filter((t) => t.status !== 'выполнена')
+  const { data: directionPlans } = await supabase
+    .from('direction_subsidy_plans')
+    .select('*')
+    .order('tech_direction')
+    .order('year')
 
   return (
     <div>
-      <RealtimeTaskRefresher />
-      <h1 className="font-display text-xl font-semibold text-ink">Аналитика команды</h1>
-      <p className="mt-1 text-sm text-ink-soft">Загрузка и темп выполнения по каждому участнику.</p>
-
-      <AnalyticsTable
-        rows={rows}
-        totalActiveTasks={totalActiveTasks}
-        totalOverdueTasks={totalOverdueTasks}
-        currentEmployeeId={currentEmployee!.id}
+      <h1 className="font-display text-xl font-semibold text-ink">Аналитика портфеля</h1>
+      <p className="mt-1 text-sm text-ink-soft">Бюджет по направлениям, освоение и требования о возврате.</p>
+      <ProjectFinanceDashboard
+        projects={(projects as ProjectForFinance[]) ?? []}
+        payments={(payments as PaymentWithProject[]) ?? []}
+        directionPlans={(directionPlans as DirectionSubsidyPlan[]) ?? []}
       />
     </div>
   )
