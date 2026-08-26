@@ -291,13 +291,18 @@ export default function ProjectFinanceDashboard({
 
   const waveEntries = Object.entries(summary.kpis.byWave).sort((a, b) => Number(a[0]) - Number(b[0]))
 
-  const rankedRemainder = useMemo(
-    // > 1 ₽, не > 0 — копеечные расхождения из-за округления при ручном вводе плана не должны
-    // попадать в список "остатков" как будто это реальный недобор.
-    () => [...summary.byDirection].filter((d) => d.totalRemainder > 1).sort((a, b) => b.totalRemainder - a.totalRemainder),
-    [summary]
-  )
-  const maxRemainder = rankedRemainder[0]?.totalRemainder ?? 0
+  // Остаток считаем только за текущий год — прошлые годы уже закрыты (остаток там 0 или
+  // историческая недоимка, это другая история), а будущие обычно ещё без плана.
+  const currentYear = new Date().getFullYear()
+  const rankedRemainder = useMemo(() => {
+    return summary.byDirection
+      .map((d) => ({ direction: d.direction, remainder: d.years.find((y) => y.year === currentYear)?.remainder ?? 0 }))
+      // > 1 ₽, не > 0 — копеечные расхождения из-за округления при ручном вводе плана не должны
+      // попадать в список "остатков" как будто это реальный недобор.
+      .filter((d) => d.remainder > 1)
+      .sort((a, b) => b.remainder - a.remainder)
+  }, [summary, currentYear])
+  const maxRemainder = rankedRemainder[0]?.remainder ?? 0
 
   return (
     <div className="mt-4 space-y-4">
@@ -348,24 +353,24 @@ export default function ProjectFinanceDashboard({
       </div>
 
       <div className="rounded-2xl border border-line bg-white p-5">
-        <h2 className="font-display text-base font-semibold text-ink">Остаток к доведению по направлениям</h2>
+        <h2 className="font-display text-base font-semibold text-ink">Остаток к доведению по направлениям ({currentYear})</h2>
         <p className="mt-0.5 text-sm text-ink-soft">
-          План минус факт за годы, где план задан — самые крупные остатки сверху.
+          План минус факт за {currentYear} год по направлениям выбранных проектов — самые крупные остатки сверху.
         </p>
         {rankedRemainder.length === 0 ? (
-          <p className="mt-2 text-sm text-ink-soft">Остатков нет — везде доведено по плану (или план ещё не задан).</p>
+          <p className="mt-2 text-sm text-ink-soft">Остатков за {currentYear} год нет — доведено по плану (или план ещё не задан).</p>
         ) : (
           <div className="mt-3 space-y-2.5">
             {rankedRemainder.map((d) => (
               <div key={d.direction}>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-ink">{d.direction}</span>
-                  <span className="font-mono text-xs text-ink-soft">{formatRubRounded(d.totalRemainder)}</span>
+                  <span className="font-mono text-xs text-ink-soft">{formatRubRounded(d.remainder)}</span>
                 </div>
                 <div className="mt-1 h-2 overflow-hidden rounded-full bg-line">
                   <div
                     className="h-full rounded-full bg-urgent"
-                    style={{ width: `${maxRemainder > 0 ? (d.totalRemainder / maxRemainder) * 100 : 0}%` }}
+                    style={{ width: `${maxRemainder > 0 ? (d.remainder / maxRemainder) * 100 : 0}%` }}
                   />
                 </div>
               </div>

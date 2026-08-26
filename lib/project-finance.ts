@@ -80,12 +80,12 @@ export function aggregatePortfolioFinance(
   })
   const kpis: PortfolioKpis = { totalProjects: visibleProjects.length, byWave, totalBudget }
 
-  // Направления берём из плана (независим от отбора проектов) и из отобранных проектов —
-  // так строка направления не исчезает, если под фильтр не попал ни один его проект,
-  // и видно "план есть, факта в этом отборе — 0".
-  const directionNames = new Set<string>()
-  visibleProjects.forEach((p) => p.tech_direction && directionNames.add(p.tech_direction))
-  directionPlans.forEach((d) => directionNames.add(d.tech_direction))
+  // Направления — только те, в которые входит хотя бы один отобранный (фильтром) проект.
+  // План по направлению, у которого сейчас 0 отобранных проектов, в расчёт не идёт —
+  // иначе при фильтрации по одному направлению "Освоение по годам" продолжало бы
+  // показывать план всего портфеля, а факт — только отфильтрованный (несопоставимо).
+  const visibleDirections = new Set(visibleProjects.map((p) => p.tech_direction).filter(Boolean))
+  const directionNames = visibleDirections
 
   const byDirection: DirectionFinance[] = [...directionNames]
     .sort((a, b) => a.localeCompare(b, 'ru'))
@@ -132,12 +132,14 @@ export function aggregatePortfolioFinance(
     })
 
   const allYearsSet = new Set<number>()
-  directionPlans.forEach((d) => allYearsSet.add(d.year))
+  directionPlans.forEach((d) => visibleDirections.has(d.tech_direction) && allYearsSet.add(d.year))
   visiblePayments.forEach((p) => p.plan_year && allYearsSet.add(p.plan_year))
   const allYears = [...allYearsSet].sort((a, b) => a - b)
 
   const yearTotals: YearTotal[] = allYears.map((year) => {
-    const plan = directionPlans.filter((d) => d.year === year).reduce((s, d) => s + d.amount, 0)
+    const plan = directionPlans
+      .filter((d) => d.year === year && visibleDirections.has(d.tech_direction))
+      .reduce((s, d) => s + d.amount, 0)
     const released = visiblePayments
       .filter((p) => p.plan_year === year && p.actually_paid)
       .reduce((s, p) => s + (Number(p.paid_amount) || 0), 0)
