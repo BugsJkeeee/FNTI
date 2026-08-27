@@ -16,6 +16,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if ('akr' in body) updates.akr = body.akr
   if ('invoice_number' in body) updates.invoice_number = body.invoice_number
   if ('additional_agreements' in body) updates.additional_agreements = body.additional_agreements
+  if ('contract_date' in body) updates.contract_date = body.contract_date || null
   // С какого этапа договор вступает в силу — до появления более нового договора он
   // действует и на все последующие этапы (см. lib/project-status.ts / trackStatus и
   // логику подбора договора для строки план/платёж в payments).

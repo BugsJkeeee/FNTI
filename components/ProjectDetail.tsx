@@ -227,6 +227,9 @@ function ContractRow({ projectId, contract, onSaved }: { projectId: string; cont
   const [editingStage, setEditingStage] = useState(false)
   const [stageNumber, setStageNumber] = useState(contract.stage_number?.toString() ?? '')
   const [savingStage, setSavingStage] = useState(false)
+  const [editingDate, setEditingDate] = useState(false)
+  const [contractDate, setContractDate] = useState(contract.contract_date ?? '')
+  const [savingDate, setSavingDate] = useState(false)
   const [showAgreements, setShowAgreements] = useState(false)
   const [agreements, setAgreements] = useState<{ number: string; date: string }[]>(() =>
     contract.additional_agreements.map((a) => ({ number: a.number, date: a.date ?? '' }))
@@ -303,6 +306,29 @@ function ContractRow({ projectId, contract, onSaved }: { projectId: string; cont
     }
   }
 
+  function startEditingDate() {
+    setContractDate(contract.contract_date ?? '')
+    setEditingDate(true)
+  }
+
+  async function saveDate() {
+    setSavingDate(true)
+    try {
+      const res = await fetch(`/api/projects/${projectId}/contracts/${contract.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contract_date: contractDate || null }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        onSaved(data)
+        setEditingDate(false)
+      }
+    } finally {
+      setSavingDate(false)
+    }
+  }
+
   function setAgreementField(i: number, field: 'number' | 'date', value: string) {
     setAgreements((a) => a.map((row, idx) => (idx === i ? { ...row, [field]: value } : row)))
     setAgreementsDirty(true)
@@ -330,9 +356,25 @@ function ContractRow({ projectId, contract, onSaved }: { projectId: string; cont
   return (
     <li>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-mono text-xs text-ink-soft">
-          {contract.contract_number} от {formatDate(contract.contract_date)}
-        </span>
+        <span className="font-mono text-xs text-ink-soft">{contract.contract_number} от</span>
+        {editingDate ? (
+          <span className="flex items-center gap-1 text-xs">
+            <input
+              type="date"
+              value={contractDate}
+              onChange={(e) => setContractDate(e.target.value)}
+              className="rounded-md border border-line bg-paper px-1.5 py-0.5 font-mono text-xs outline-none focus:border-teal"
+            />
+            <button onClick={saveDate} disabled={savingDate} className="text-teal hover:opacity-80 disabled:opacity-50">
+              {savingDate ? '…' : 'ОК'}
+            </button>
+            <button onClick={() => setEditingDate(false)} className="text-ink-soft hover:text-ink">×</button>
+          </span>
+        ) : (
+          <button onClick={startEditingDate} className="font-mono text-xs text-ink-soft transition hover:text-teal">
+            {contract.contract_date ? formatDate(contract.contract_date) : '+ добавить дату'}
+          </button>
+        )}
         {editingStage ? (
           <span className="flex items-center gap-1 text-xs">
             <span className="text-ink-soft">этап с</span>
