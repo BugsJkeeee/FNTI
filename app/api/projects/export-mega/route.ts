@@ -191,32 +191,45 @@ export async function GET() {
   })
 
   // ---------- Лист «Платежи» ----------
+  // Как и «Возвраты»: если по строке (год+договор) было несколько фактических платежей
+  // (payment_events), на каждый — своя строка, поля самой строки (план/факт-сумма и т.п.)
+  // повторяются, а «Дата платежа»/«Сумма платежа» — про конкретный платёж. Ни одного
+  // платежа ещё не было — одна строка, эти две колонки пустые.
   const paymentRows = projects.flatMap((p) =>
-    (p.payments ?? []).map((pay) => ({
-      payment_id: pay.external_payment_id || pay.id,
-      project_id: externalId(p),
-      'Шифр': p.code,
-      'Исполнитель': p.executor_short,
-      'Технологическое направление': p.tech_direction,
-      'Номер договора': pay.contract_number,
-      'Тип записи': pay.record_type,
-      'Период/этап': pay.period_label,
-      'Дата не ранее': formatDate(pay.window_start),
-      'Дата не позднее / плановая': formatDate(pay.window_end),
-      'Год по плану': pay.plan_year ?? '',
-      'Факт выплаты': pay.actually_paid ? 'Да' : 'Нет',
-      'Дата заявки на платёж': formatDate(pay.payment_request_date),
-      'Сумма обязательства, руб.': pay.obligation_amount ?? '',
-      'Сумма оплаты, руб.': pay.paid_amount ?? '',
-      'Переносить в сценарии': pay.carry_forward ? 'Да' : 'Нет',
-      'Год с учетом переноса': pay.adjusted_year ?? '',
-      'Прогнозный перенос 2026->2027': pay.forecast_carry_2026_2027 ? 'Да' : 'Нет',
-      'Учитывается при статусе проекта': '',
-      'Источник строки': pay.source_note,
-      'Комментарий': pay.comment,
-      'Номер заявки на платёж': pay.payment_request_number,
-      'Комментарий по заявке на платёж': pay.payment_request_comment,
-    }))
+    (p.payments ?? []).flatMap((pay) => {
+      const base = {
+        payment_id: pay.external_payment_id || pay.id,
+        project_id: externalId(p),
+        'Шифр': p.code,
+        'Исполнитель': p.executor_short,
+        'Технологическое направление': p.tech_direction,
+        'Номер договора': pay.contract_number,
+        'Тип записи': pay.record_type,
+        'Период/этап': pay.period_label,
+        'Дата не ранее': formatDate(pay.window_start),
+        'Дата не позднее / плановая': formatDate(pay.window_end),
+        'Год по плану': pay.plan_year ?? '',
+        'Факт выплаты': pay.actually_paid ? 'Да' : 'Нет',
+        'Сумма обязательства, руб.': pay.obligation_amount ?? '',
+        'Сумма оплаты (итого), руб.': pay.paid_amount ?? '',
+        'Переносить в сценарии': pay.carry_forward ? 'Да' : 'Нет',
+        'Год с учетом переноса': pay.adjusted_year ?? '',
+        'Прогнозный перенос 2026->2027': pay.forecast_carry_2026_2027 ? 'Да' : 'Нет',
+        'Учитывается при статусе проекта': '',
+        'Источник строки': pay.source_note,
+        'Комментарий': pay.comment,
+        'Номер заявки на платёж': pay.payment_request_number,
+        'Комментарий по заявке на платёж': pay.payment_request_comment,
+      }
+
+      function withEvent(date: string | null, amount: number | string) {
+        return { ...base, 'Дата платежа': formatDate(date), 'Сумма платежа, руб.': amount }
+      }
+
+      const events = pay.payment_events ?? []
+      if (events.length === 0) return [withEvent(null, '')]
+      return events.map((e) => withEvent(e.date, e.amount ?? ''))
+    })
   )
 
   // ---------- Лист «Возвраты» ----------
