@@ -16,6 +16,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if ('akr' in body) updates.akr = body.akr
   if ('invoice_number' in body) updates.invoice_number = body.invoice_number
   if ('additional_agreements' in body) updates.additional_agreements = body.additional_agreements
+  // С какого этапа договор вступает в силу — до появления более нового договора он
+  // действует и на все последующие этапы (см. lib/project-status.ts / trackStatus и
+  // логику подбора договора для строки план/платёж в payments).
+  if ('stage_number' in body) updates.stage_number = body.stage_number ? Number(body.stage_number) : null
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: 'Нечего сохранять' }, { status: 400 })

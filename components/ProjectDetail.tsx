@@ -224,6 +224,9 @@ function ContractRow({ projectId, contract, onSaved }: { projectId: string; cont
   const [editingInvoice, setEditingInvoice] = useState(false)
   const [invoiceNumber, setInvoiceNumber] = useState(contract.invoice_number)
   const [savingInvoice, setSavingInvoice] = useState(false)
+  const [editingStage, setEditingStage] = useState(false)
+  const [stageNumber, setStageNumber] = useState(contract.stage_number?.toString() ?? '')
+  const [savingStage, setSavingStage] = useState(false)
   const [showAgreements, setShowAgreements] = useState(false)
   const [agreements, setAgreements] = useState<{ number: string; date: string }[]>(() =>
     contract.additional_agreements.map((a) => ({ number: a.number, date: a.date ?? '' }))
@@ -277,6 +280,29 @@ function ContractRow({ projectId, contract, onSaved }: { projectId: string; cont
     }
   }
 
+  function startEditingStage() {
+    setStageNumber(contract.stage_number?.toString() ?? '')
+    setEditingStage(true)
+  }
+
+  async function saveStage() {
+    setSavingStage(true)
+    try {
+      const res = await fetch(`/api/projects/${projectId}/contracts/${contract.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stage_number: stageNumber || null }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        onSaved(data)
+        setEditingStage(false)
+      }
+    } finally {
+      setSavingStage(false)
+    }
+  }
+
   function setAgreementField(i: number, field: 'number' | 'date', value: string) {
     setAgreements((a) => a.map((row, idx) => (idx === i ? { ...row, [field]: value } : row)))
     setAgreementsDirty(true)
@@ -305,9 +331,29 @@ function ContractRow({ projectId, contract, onSaved }: { projectId: string; cont
     <li>
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-mono text-xs text-ink-soft">
-          {contract.contract_number} от {formatDate(contract.contract_date)}{' '}
-          {contract.stage_number ? `(этап ${contract.stage_number})` : contract.contract_year ? `(${contract.contract_year})` : ''}
+          {contract.contract_number} от {formatDate(contract.contract_date)}
         </span>
+        {editingStage ? (
+          <span className="flex items-center gap-1 text-xs">
+            <span className="text-ink-soft">этап с</span>
+            <input
+              type="number"
+              min={1}
+              value={stageNumber}
+              onChange={(e) => setStageNumber(e.target.value)}
+              placeholder="—"
+              className="w-12 rounded-md border border-line bg-paper px-1.5 py-0.5 text-xs outline-none focus:border-teal"
+            />
+            <button onClick={saveStage} disabled={savingStage} className="text-teal hover:opacity-80 disabled:opacity-50">
+              {savingStage ? '…' : 'ОК'}
+            </button>
+            <button onClick={() => setEditingStage(false)} className="text-ink-soft hover:text-ink">×</button>
+          </span>
+        ) : (
+          <button onClick={startEditingStage} className="font-mono text-xs text-ink-soft transition hover:text-teal">
+            {contract.stage_number ? `(этап ${contract.stage_number})` : contract.contract_year ? `(${contract.contract_year})` : '(этап —)'}
+          </button>
+        )}
         {editingInvoice ? (
           <>
             <input
@@ -806,17 +852,22 @@ function eventsToDraft(payment: ProjectPayment): PaymentEventDraft[] {
 function PaymentRow({
   projectId,
   payment,
+  contracts,
   onSaved,
   onDeleted,
 }: {
   projectId: string
   payment: ProjectPayment
+  contracts: ProjectContract[]
   onSaved: (p: ProjectPayment) => void
   onDeleted: (id: string) => void
 }) {
   const [editing, setEditing] = useState(false)
   const [events, setEvents] = useState<PaymentEventDraft[]>(() => eventsToDraft(payment))
   const [saving, setSaving] = useState(false)
+  const [editingContract, setEditingContract] = useState(false)
+  const [contractNumber, setContractNumber] = useState(payment.contract_number)
+  const [savingContract, setSavingContract] = useState(false)
 
   function startEdit() {
     setEvents(eventsToDraft(payment))
@@ -825,6 +876,29 @@ function PaymentRow({
 
   function setEventField(i: number, field: 'date' | 'amount', value: string) {
     setEvents((prev) => prev.map((row, idx) => (idx === i ? { ...row, [field]: value } : row)))
+  }
+
+  function startEditingContract() {
+    setContractNumber(payment.contract_number)
+    setEditingContract(true)
+  }
+
+  async function saveContract() {
+    setSavingContract(true)
+    try {
+      const res = await fetch(`/api/projects/${projectId}/payments/${payment.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contract_number: contractNumber }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        onSaved(data)
+        setEditingContract(false)
+      }
+    } finally {
+      setSavingContract(false)
+    }
   }
 
   async function save() {
@@ -924,7 +998,32 @@ function PaymentRow({
   return (
     <tr className="border-t border-line">
       <td className="py-1 pr-6 font-mono text-ink">{payment.plan_year || '—'}</td>
-      <td className="py-1 pr-6 font-mono text-ink-soft">{payment.contract_number || '—'}</td>
+      <td className="py-1 pr-6 font-mono text-ink-soft">
+        {editingContract ? (
+          <span className="flex items-center gap-1">
+            <select
+              value={contractNumber}
+              onChange={(e) => setContractNumber(e.target.value)}
+              className="rounded-md border border-line bg-paper px-1.5 py-0.5 text-xs outline-none focus:border-teal"
+            >
+              {contracts.map((c) => (
+                <option key={c.id} value={c.contract_number}>{c.contract_number}</option>
+              ))}
+              {!contracts.some((c) => c.contract_number === contractNumber) && (
+                <option value={contractNumber}>{contractNumber || '—'}</option>
+              )}
+            </select>
+            <button onClick={saveContract} disabled={savingContract} className="text-teal hover:opacity-80 disabled:opacity-50">
+              {savingContract ? '…' : 'ОК'}
+            </button>
+            <button onClick={() => setEditingContract(false)} className="text-ink-soft hover:text-ink">×</button>
+          </span>
+        ) : (
+          <button onClick={startEditingContract} className="transition hover:text-teal">
+            {payment.contract_number || '—'}
+          </button>
+        )}
+      </td>
       <td className="py-1 pr-6 text-ink">{formatRub(Number(payment.obligation_amount) || 0)}</td>
       <td className="py-1 pr-6">
         <button onClick={startEdit} className="text-ink transition hover:text-teal">
@@ -959,26 +1058,22 @@ function AddPaymentForm({
   onAdded: (p: ProjectPayment) => void
 }) {
   const [adding, setAdding] = useState(false)
-  const [year, setYear] = useState(new Date().getFullYear().toString())
   const [contractNumber, setContractNumber] = useState(contracts[0]?.contract_number ?? '')
-  const [obligation, setObligation] = useState('')
+  const [amount, setAmount] = useState('')
+  const [date, setDate] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
-    if (!year.trim()) return
+    if (!contractNumber || !amount || !date) return
     setSaving(true)
     setError(null)
     try {
       const res = await fetch(`/api/projects/${projectId}/payments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          plan_year: Number(year),
-          contract_number: contractNumber,
-          obligation_amount: obligation ? Number(obligation) : null,
-        }),
+        body: JSON.stringify({ contract_number: contractNumber, amount: Number(amount), date }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -986,7 +1081,8 @@ function AddPaymentForm({
         return
       }
       onAdded(data)
-      setObligation('')
+      setAmount('')
+      setDate('')
       setAdding(false)
     } finally {
       setSaving(false)
@@ -1003,10 +1099,6 @@ function AddPaymentForm({
 
   return (
     <form onSubmit={handleAdd} className="mt-3 flex flex-wrap items-end gap-2">
-      <div>
-        <label className="mb-1 block text-xs text-ink-soft">Год</label>
-        <input type="number" value={year} onChange={(e) => setYear(e.target.value)} className="w-24 rounded-lg border border-line bg-paper px-2.5 py-1.5 text-xs outline-none focus:border-teal" />
-      </div>
       <div>
         <label className="mb-1 block text-xs text-ink-soft">Договор</label>
         {contracts.length > 0 ? (
@@ -1029,8 +1121,12 @@ function AddPaymentForm({
         )}
       </div>
       <div>
-        <label className="mb-1 block text-xs text-ink-soft">План, ₽</label>
-        <input type="number" value={obligation} onChange={(e) => setObligation(e.target.value)} className="w-32 rounded-lg border border-line bg-paper px-2.5 py-1.5 text-xs outline-none focus:border-teal" />
+        <label className="mb-1 block text-xs text-ink-soft">Сумма платежа, ₽</label>
+        <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-36 rounded-lg border border-line bg-paper px-2.5 py-1.5 text-xs outline-none focus:border-teal" />
+      </div>
+      <div>
+        <label className="mb-1 block text-xs text-ink-soft">Дата платежа</label>
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="rounded-lg border border-line bg-paper px-2.5 py-1.5 text-xs outline-none focus:border-teal" />
       </div>
       <button
         type="submit"
@@ -1090,7 +1186,7 @@ function FinancingCard({
             </thead>
             <tbody>
               {sortedPayments.map((p) => (
-                <PaymentRow key={p.id} projectId={projectId} payment={p} onSaved={onSaved} onDeleted={onDeleted} />
+                <PaymentRow key={p.id} projectId={projectId} payment={p} contracts={contracts} onSaved={onSaved} onDeleted={onDeleted} />
               ))}
               <tr className="border-t border-line font-semibold text-ink">
                 <td className="py-1 pr-6" colSpan={2}>Итого</td>
@@ -1477,7 +1573,7 @@ export default function ProjectDetail({
         payments={payments}
         onContractAdded={(c) => setContracts((prev) => [...prev, c])}
         onContractSaved={(c) => setContracts((prev) => prev.map((x) => (x.id === c.id ? c : x)))}
-        onPaymentAdded={(p) => setPayments((prev) => [...prev, p])}
+        onPaymentAdded={(p) => setPayments((prev) => (prev.some((x) => x.id === p.id) ? prev.map((x) => (x.id === p.id ? p : x)) : [...prev, p]))}
         onPaymentSaved={(p) => setPayments((prev) => prev.map((x) => (x.id === p.id ? p : x)))}
         onPaymentDeleted={(id) => setPayments((prev) => prev.filter((x) => x.id !== id))}
         onClaimAdded={handleClaimAdded}
