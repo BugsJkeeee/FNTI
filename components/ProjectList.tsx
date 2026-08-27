@@ -171,13 +171,16 @@ function ProjectRow({ project, displayNumber, highlightQuery }: { project: Proje
   const visibleMatch =
     !!q &&
     (String(project.number).includes(q) || project.code.toLowerCase().includes(q) || project.executor_short.toLowerCase().includes(q))
+  const matchedContract = (project.contracts ?? []).find((c) => c.contract_number.toLowerCase().includes(q))
   const hiddenMatch =
     q && !visibleMatch
       ? project.topic.toLowerCase().includes(q)
         ? { label: 'Тема', text: project.topic }
         : project.executor_full.toLowerCase().includes(q)
           ? { label: 'Исполнитель', text: project.executor_full }
-          : null
+          : matchedContract
+            ? { label: 'Договор', text: matchedContract.contract_number }
+            : null
       : null
 
   return (
@@ -278,7 +281,8 @@ export default function ProjectList({ initialProjects }: { initialProjects: Proj
         p.code.toLowerCase().includes(q) ||
         p.topic.toLowerCase().includes(q) ||
         p.executor_short.toLowerCase().includes(q) ||
-        p.executor_full.toLowerCase().includes(q)
+        p.executor_full.toLowerCase().includes(q) ||
+        (p.contracts ?? []).some((c) => c.contract_number.toLowerCase().includes(q))
       )
     })
   }, [projects, query, waveFilter, statusFilter, directionFilter])
@@ -309,7 +313,7 @@ export default function ProjectList({ initialProjects }: { initialProjects: Proj
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Поиск по ID, шифру, теме, исполнителю…"
+          placeholder="Поиск по ID, шифру, теме, исполнителю, номеру договора…"
           className="min-w-[200px] flex-[2] rounded-lg border border-line bg-white px-2.5 py-1 text-sm outline-none focus:border-teal"
         />
         <select

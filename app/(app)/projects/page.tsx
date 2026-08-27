@@ -11,7 +11,7 @@ export default async function ProjectsPage() {
   const { data: projects } = await supabase
     .from('projects')
     .select(
-      '*, stages:project_stages(*, checklist_items:project_checklist_items(*)), comments:project_comments(*, author:employees(name))'
+      '*, contracts:project_contracts(*), stages:project_stages(*, checklist_items:project_checklist_items(*)), comments:project_comments(*, author:employees(name))'
     )
     .order('wave', { ascending: true })
     .order('display_order', { ascending: true, nullsFirst: false })
