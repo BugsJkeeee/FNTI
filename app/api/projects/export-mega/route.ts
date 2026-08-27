@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server'
 import * as XLSX from 'xlsx'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentEmployee } from '@/lib/current-employee'
-import type { Project, ProjectContract, ProjectPayment } from '@/types'
+import { currentStageOf, trackStatus } from '@/lib/project-status'
+import type { Project, ProjectComment, ProjectContract, ProjectPayment } from '@/types'
 
 // Экспорт «в формате мега-таблицы» (см. private/Мега_таблица_договоры_НИОКР…xlsx, листы «Проекты» и
 // «Платежи») — те же заголовки колонок, чтобы файл можно было позже прогнать через тот же импорт-скрипт
@@ -12,7 +13,7 @@ import type { Project, ProjectContract, ProjectPayment } from '@/types'
 // партнёры) — оставлены пустыми, не выдумываем.
 
 const SELECT =
-  '*, contracts:project_contracts(*), stages:project_stages(*, claims:project_claims(*)), payments:project_payments(*)'
+  '*, contracts:project_contracts(*), stages:project_stages(*, claims:project_claims(*), checklist_items:project_checklist_items(*)), payments:project_payments(*), comments:project_comments(*, author:employees(name))'
 
 const STATUS_LABEL: Record<Project['status'], string> = {
   active: 'Продолжаем',
@@ -28,6 +29,11 @@ function formatDate(d: string | null | undefined) {
 // у нас это список [{number, date}], собираем обратно в тот же текстовый формат для экспорта.
 function formatAdditionalAgreements(list: { number: string; date: string | null }[] | undefined) {
   return (list ?? []).map((a) => `№ ${a.number} от ${formatDate(a.date)}`).join('\n')
+}
+
+function latestComment(comments: ProjectComment[] | undefined) {
+  const c = [...(comments ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
+  return c ? `«${c.text}» — ${c.author?.name ?? ''}` : ''
 }
 
 function contractFor(contracts: ProjectContract[], year: number) {
@@ -66,6 +72,9 @@ export async function GET() {
 
     const stage = (n: number) => stages.find((s) => s.stage_number === n)
     const grantTotal = stages.reduce((acc, s) => acc + (Number(s.cost) || 0), 0)
+    const curStage = currentStageOf(p)
+    const techStatus = trackStatus(curStage, 'technical')
+    const finStatus = trackStatus(curStage, 'financial')
 
     const years = [2024, 2025, 2026, 2027]
     const obligationByYear = Object.fromEntries(years.map((y) => [y, sumBy(payments, y, 'obligation_amount')]))
@@ -134,6 +143,10 @@ export async function GET() {
       'Окончание этапа 1': formatDate(stage(1)?.end_date),
       'Окончание этапа 2': formatDate(stage(2)?.end_date),
       'Окончание этапа 3': formatDate(stage(3)?.end_date),
+      'Текущий этап': curStage?.stage_number ?? '',
+      'Статус технической приёмки': techStatus.text,
+      'Статус финансовой приёмки': finStatus.text,
+      'Мнение Фонда НТИ (последнее)': latestComment(p.comments),
       'Сумма гранта из сводной': grantTotal || '',
       'Обязательства 2024': obligationByYear[2024] || '',
       'Оплачено 2024': paidByYear[2024] || '',
