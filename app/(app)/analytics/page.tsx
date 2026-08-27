@@ -1,14 +1,17 @@
 import { createClient } from '@/lib/supabase/server'
-import ProjectFinanceDashboard from '@/components/ProjectFinanceDashboard'
+import AnalyticsPageClient from '@/components/analytics/AnalyticsPage'
 import type { DirectionSubsidyPlan } from '@/types'
-import type { PaymentWithProject, ProjectForFinance } from '@/lib/project-finance'
+import type { PaymentWithProject } from '@/lib/project-finance'
+import type { ProjectForAnalytics } from '@/lib/project-risk'
 
 export default async function AnalyticsPage() {
   const supabase = await createClient()
 
   const { data: projects } = await supabase
     .from('projects')
-    .select('id, number, wave, code, status, tech_direction, stages:project_stages(id, cost, claims:project_claims(*))')
+    .select(
+      'id, number, wave, code, status, tech_direction, topic, stages:project_stages(id, stage_number, name, start_date, end_date, cost, claims:project_claims(*), checklist_items:project_checklist_items(*))'
+    )
 
   const { data: payments } = await supabase
     .from('project_payments')
@@ -24,8 +27,8 @@ export default async function AnalyticsPage() {
     <div>
       <h1 className="font-display text-xl font-semibold text-ink">Аналитика портфеля</h1>
       <p className="mt-1 text-sm text-ink-soft">Бюджет по направлениям, освоение и требования о возврате.</p>
-      <ProjectFinanceDashboard
-        projects={(projects as ProjectForFinance[]) ?? []}
+      <AnalyticsPageClient
+        projects={(projects as ProjectForAnalytics[]) ?? []}
         payments={(payments as PaymentWithProject[]) ?? []}
         directionPlans={(directionPlans as DirectionSubsidyPlan[]) ?? []}
       />
