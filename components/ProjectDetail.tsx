@@ -1206,7 +1206,15 @@ function FinancingCard({
 }) {
   const totalObligation = payments.reduce((a, p) => a + (Number(p.obligation_amount) || 0), 0)
   const totalPaid = payments.reduce((a, p) => a + (Number(p.paid_amount) || 0), 0)
-  const sortedPayments = [...payments].sort((a, b) => (a.plan_year ?? 0) - (b.plan_year ?? 0))
+  // Внутри одного года: сначала строки с фактом (доведено), пусто-факт — снизу — чтобы
+  // не приходилось искать реальный платёж среди ещё не доведённых строк того же года.
+  const sortedPayments = [...payments].sort((a, b) => {
+    const yearDiff = (a.plan_year ?? 0) - (b.plan_year ?? 0)
+    if (yearDiff !== 0) return yearDiff
+    const aPaid = Number(a.paid_amount) > 0 ? 0 : 1
+    const bPaid = Number(b.paid_amount) > 0 ? 0 : 1
+    return aPaid - bPaid
+  })
 
   return (
     <div>
