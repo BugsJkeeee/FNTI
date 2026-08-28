@@ -23,26 +23,26 @@ function minusMonths(dateISO: string | null, months: number): string | null {
 
 export const TECHNICAL_TEMPLATE: TemplateStep[] = [
   { template_key: 'tech_1', title: 'Открыть КТ для загрузки 1-го комплекта отчётной документации', computeTargetDate: (s) => minusMonths(s.end_date, 1) },
-  { template_key: 'tech_2', title: 'Комплект получен → отправлен в МФТИ', computeTargetDate: () => null },
-  { template_key: 'tech_3', title: 'Первичная проверка отчетности МФТИ', computeTargetDate: () => null },
-  { template_key: 'tech_4', title: 'Открыть контрольную точку по загрузке финального комплекта документации (при необходимости)', computeTargetDate: () => null },
-  { template_key: 'tech_5', title: 'Повторная экспертиза отчетности МФТИ (при необходимости)', computeTargetDate: () => null },
-  { template_key: 'tech_6', title: 'Получено и проверено заключение эксперта', computeTargetDate: () => null },
+  { template_key: 'tech_2', title: 'Получить комплект и отправить в МФТИ', computeTargetDate: () => null },
+  { template_key: 'tech_3', title: 'Дождаться результатов первичной проверки отчётности от МФТИ', computeTargetDate: () => null },
+  { template_key: 'tech_4', title: 'Открыть КТ для загрузки финального комплекта документации (при необходимости)', computeTargetDate: () => null },
+  { template_key: 'tech_5', title: 'Дождаться результатов повторной экспертизы отчётности от МФТИ (при необходимости)', computeTargetDate: () => null },
+  { template_key: 'tech_6', title: 'Проверить заключения экспертов', computeTargetDate: () => null },
   { template_key: 'tech_7', title: 'Направить результаты экспертизы на Грантовую комиссию', computeTargetDate: () => null },
   { template_key: 'tech_8', title: 'Результаты утверждены на Грантовой комиссии', computeTargetDate: () => null },
 ]
 
 export const FINANCIAL_TEMPLATE: TemplateStep[] = [
-  { template_key: 'fin_1', title: 'Открыть КТ для загрузки финансовой отчетности', computeTargetDate: (s) => s.end_date },
-  { template_key: 'fin_2', title: 'Документы получены → проверены → направлены эксперту', computeTargetDate: () => null },
-  { template_key: 'fin_3', title: 'Первичная проверка отчетности', computeTargetDate: () => null },
-  { template_key: 'fin_4', title: 'Направлены замечания от эксперта — получены пояснения', computeTargetDate: () => null },
-  { template_key: 'fin_5', title: 'Повторная экспертиза доработанной отчетности', computeTargetDate: () => null },
-  { template_key: 'fin_6', title: 'Заключение получено (на внутренней проверке)', computeTargetDate: () => null },
+  { template_key: 'fin_1', title: 'Открыть КТ для загрузки финансовой отчётности', computeTargetDate: (s) => s.end_date },
+  { template_key: 'fin_2', title: 'Получить, проверить и направить документы эксперту', computeTargetDate: () => null },
+  { template_key: 'fin_3', title: 'Дождаться результатов первичной проверки финансовой отчётности', computeTargetDate: () => null },
+  { template_key: 'fin_4', title: 'Направить замечания эксперта и получить пояснения (при необходимости)', computeTargetDate: () => null },
+  { template_key: 'fin_5', title: 'Провести повторную экспертизу доработанной отчётности', computeTargetDate: () => null },
+  { template_key: 'fin_6', title: 'Получить заключение по результатам внутренней проверки', computeTargetDate: () => null },
   { template_key: 'fin_7', title: 'Направить результаты экспертизы на Грантовую комиссию', computeTargetDate: () => null },
   { template_key: 'fin_8', title: 'Результаты утверждены Грантовой комиссией', computeTargetDate: () => null },
-  { template_key: 'fin_9', title: 'Направлено требование о возврате (при необходимости)', computeTargetDate: () => null },
-  { template_key: 'fin_10', title: 'Исполнено требование о возврате (при необходимости)', computeTargetDate: () => null },
+  { template_key: 'fin_9', title: 'Направить требование о возврате (при необходимости)', computeTargetDate: () => null },
+  { template_key: 'fin_10', title: 'Исполнить требование о возврате (при необходимости)', computeTargetDate: () => null },
 ]
 
 export const FINAL_TECHNICAL_KEY = 'tech_8'
