@@ -1,10 +1,10 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { getCurrentEmployee } from '@/lib/current-employee'
+import { getCurrentEmployee, getAllEmployees } from '@/lib/current-employee'
 import TaskDetail from '@/components/TaskDetail'
 import CommentSection from '@/components/CommentSection'
-import type { Comment, Employee, ProjectOption, Tag, Task } from '@/types'
+import type { Comment, ProjectOption, Tag, Task } from '@/types'
 
 export default async function TaskPage({
   params,
@@ -42,7 +42,7 @@ export default async function TaskPage({
     .eq('task_id', id)
     .order('created_at', { ascending: true })
 
-  const { data: employees } = await supabase.from('employees').select('*').order('name')
+  const employees = await getAllEmployees()
 
   const { data: taskTags } = await supabase.from('task_tags').select('tag:tags(*)').eq('task_id', id)
   const tags = ((taskTags ?? []) as unknown as { tag: Tag | null }[]).map((t) => t.tag).filter((t): t is Tag => !!t)
@@ -67,7 +67,7 @@ export default async function TaskPage({
       <TaskDetail
         task={task as Task}
         currentEmployee={employee!}
-        employees={(employees as Employee[]) ?? []}
+        employees={employees}
         initialTags={tags}
         availableTags={(allTags as Tag[]) ?? []}
         projectOptions={(projectOptions as ProjectOption[]) ?? []}

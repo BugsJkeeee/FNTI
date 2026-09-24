@@ -1,12 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
-import { getCurrentEmployee } from '@/lib/current-employee'
+import { getCurrentEmployee, getAllEmployees } from '@/lib/current-employee'
 import { attachCommentInfo } from '@/lib/comments'
 import { attachTagInfo } from '@/lib/tags'
 import MyDashboard from '@/components/MyDashboard'
 import ActivityFeed from '@/components/ActivityFeed'
 import ProfileForm from '@/components/ProfileForm'
 import TelegramLinkCard from '@/components/TelegramLinkCard'
-import type { Employee, Task } from '@/types'
+import type { Task } from '@/types'
 
 export default async function MePage() {
   const employee = await getCurrentEmployee()
@@ -19,7 +19,7 @@ export default async function MePage() {
     )
     .order('created_at', { ascending: false })
 
-  const { data: employees } = await supabase.from('employees').select('*').order('name')
+  const employees = await getAllEmployees()
 
   const tasksWithComments = await attachCommentInfo(supabase, (tasks as Task[]) ?? [], employee!.id)
   const tasksWithExtras = await attachTagInfo(supabase, tasksWithComments)
@@ -65,7 +65,7 @@ export default async function MePage() {
       <MyDashboard
         currentEmployee={employee!}
         initialTasks={tasksWithExtras}
-        employees={(employees as Employee[]) ?? []}
+        employees={employees}
       />
 
       <section className="rounded-2xl border border-line bg-white p-5">

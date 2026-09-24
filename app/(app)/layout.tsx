@@ -1,19 +1,15 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { getCurrentEmployee } from '@/lib/current-employee'
-import { createClient } from '@/lib/supabase/server'
+import { getCurrentEmployee, getAllEmployees } from '@/lib/current-employee'
 import SignOutButton from '@/components/SignOutButton'
 import AiCommandMenu from '@/components/AiCommandMenu'
 import PeekCat from '@/components/PeekCat'
-import type { Employee } from '@/types'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const employee = await getCurrentEmployee()
   if (!employee) redirect('/login')
 
-  const supabase = await createClient()
-  const { data: employees } = await supabase.from('employees').select('*').order('name')
-  const allEmployees = (employees as Employee[]) ?? []
+  const allEmployees = await getAllEmployees()
 
   return (
     <div className="min-h-screen">

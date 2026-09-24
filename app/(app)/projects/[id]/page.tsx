@@ -1,11 +1,11 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { getCurrentEmployee } from '@/lib/current-employee'
+import { getCurrentEmployee, getAllEmployees } from '@/lib/current-employee'
 import { attachCommentInfo } from '@/lib/comments'
 import { attachTagInfo, filterVisibleTasks } from '@/lib/tags'
 import ProjectDetail from '@/components/ProjectDetail'
-import type { Employee, Project, Task } from '@/types'
+import type { Project, Task } from '@/types'
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -22,7 +22,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
 
   if (!project) notFound()
 
-  const { data: employees } = await supabase.from('employees').select('*').order('name')
+  const employees = await getAllEmployees()
 
   const { data: projectTasks } = await supabase
     .from('tasks')
@@ -46,7 +46,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
       <ProjectDetail
         project={project as Project}
         currentEmployee={employee!}
-        employees={(employees as Employee[]) ?? []}
+        employees={employees}
         initialTasks={visibleTasks}
       />
     </div>

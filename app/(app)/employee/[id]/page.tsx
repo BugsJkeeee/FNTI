@@ -1,12 +1,12 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getCurrentEmployee } from '@/lib/current-employee'
+import { getCurrentEmployee, getAllEmployees } from '@/lib/current-employee'
 import { attachCommentInfo } from '@/lib/comments'
 import { attachTagInfo, filterVisibleTasks } from '@/lib/tags'
 import TaskCard from '@/components/TaskCard'
 import EmployeeQuickCreate from '@/components/EmployeeQuickCreate'
 import RealtimeTaskRefresher from '@/components/RealtimeTaskRefresher'
-import type { Employee, Task } from '@/types'
+import type { Task } from '@/types'
 
 export default async function EmployeePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -24,7 +24,7 @@ export default async function EmployeePage({ params }: { params: Promise<{ id: s
     .eq('assignee_id', id)
     .order('created_at', { ascending: false })
 
-  const { data: employees } = await supabase.from('employees').select('*').order('name')
+  const employees = await getAllEmployees()
 
   const withComments = await attachCommentInfo(supabase, (tasks as Task[]) ?? [], currentEmployee!.id)
   const withTags = await attachTagInfo(supabase, withComments)
@@ -41,7 +41,7 @@ export default async function EmployeePage({ params }: { params: Promise<{ id: s
       </div>
 
       <EmployeeQuickCreate
-        employees={(employees as Employee[]) ?? []}
+        employees={employees}
         defaultAssigneeId={id}
         personName={person.name}
       />

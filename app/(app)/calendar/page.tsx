@@ -1,10 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
-import { getCurrentEmployee } from '@/lib/current-employee'
+import { getCurrentEmployee, getAllEmployees } from '@/lib/current-employee'
 import { attachCommentInfo } from '@/lib/comments'
 import { attachTagInfo, filterVisibleTasks } from '@/lib/tags'
 import CalendarView from '@/components/CalendarView'
 import RealtimeTaskRefresher from '@/components/RealtimeTaskRefresher'
-import type { Employee, Task } from '@/types'
+import type { Task } from '@/types'
 
 function toISODate(d: Date) {
   return d.toISOString().slice(0, 10)
@@ -36,7 +36,7 @@ export default async function CalendarPage() {
     .neq('status', 'выполнена')
     .order('deadline', { ascending: true })
 
-  const { data: employees } = await supabase.from('employees').select('*').order('name')
+  const employees = await getAllEmployees()
 
   const withComments = await attachCommentInfo(supabase, (tasks as Task[]) ?? [], employee!.id)
   const withTags = await attachTagInfo(supabase, withComments)
@@ -66,7 +66,7 @@ export default async function CalendarPage() {
       <CalendarView
         weekDays={weekDays}
         otherTasks={otherTasks}
-        employees={(employees as Employee[]) ?? []}
+        employees={employees}
         currentEmployeeId={employee!.id}
       />
     </div>
