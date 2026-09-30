@@ -4,7 +4,9 @@ import GlossaryForm from '@/components/GlossaryForm'
 import GlossaryList from '@/components/GlossaryList'
 import TagsSection from '@/components/TagsSection'
 import DirectionSubsidyPlans from '@/components/DirectionSubsidyPlans'
-import type { DirectionSubsidyPlan, GlossaryEntry, Tag } from '@/types'
+import DirectionGrbsDecisions from '@/components/DirectionGrbsDecisions'
+import CollapsibleSection from '@/components/CollapsibleSection'
+import type { DirectionGrbsDecision, DirectionSubsidyPlan, GlossaryEntry, Tag } from '@/types'
 
 export default async function GlossaryPage() {
   const employee = await getCurrentEmployee()
@@ -32,6 +34,13 @@ export default async function GlossaryPage() {
     a.localeCompare(b, 'ru')
   )
 
+  const { data: grbsData } = await supabase
+    .from('direction_grbs_decisions')
+    .select('*')
+    .order('tech_direction')
+    .order('year')
+  const grbsDecisions = (grbsData as DirectionGrbsDecision[]) ?? []
+
   return (
     <div className="space-y-4">
       <div>
@@ -43,16 +52,33 @@ export default async function GlossaryPage() {
 
       <TagsSection initialTags={tags} />
 
-      <DirectionSubsidyPlans plans={subsidyPlans} directions={directions} />
+      <CollapsibleSection
+        title="Финансы"
+        description="План субсидии по направлениям на текущий и будущие годы — для сверки с фактом доведения по проектам."
+      >
+        <DirectionSubsidyPlans plans={subsidyPlans} directions={directions} />
+      </CollapsibleSection>
 
-      <GlossaryForm authorId={employee!.id} />
+      <CollapsibleSection
+        title="Решения ГРБС"
+        description="Реквизиты решений по направлениям и годам — подставляются автоматически при заведении договора на этот год."
+      >
+        <DirectionGrbsDecisions decisions={grbsDecisions} directions={directions} />
+      </CollapsibleSection>
 
-      <div className="rounded-2xl border border-line bg-white p-5">
-        <h2 className="font-display text-base font-semibold text-ink">Все записи</h2>
-        <div className="mt-3">
-          <GlossaryList entries={entries} currentEmployeeId={employee!.id} isOwner={employee!.is_owner} />
+      <CollapsibleSection
+        title="Определения"
+        description="Термины, клиенты, сокращения команды — этот текст целиком передаётся ИИ при распределении каждой новой задачи."
+        defaultOpen
+      >
+        <GlossaryForm authorId={employee!.id} />
+        <div className="mt-4 border-t border-line pt-4">
+          <h3 className="font-display text-sm font-semibold text-ink">Все записи</h3>
+          <div className="mt-3">
+            <GlossaryList entries={entries} currentEmployeeId={employee!.id} isOwner={employee!.is_owner} />
+          </div>
         </div>
-      </div>
+      </CollapsibleSection>
     </div>
   )
 }

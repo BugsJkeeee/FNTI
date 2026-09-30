@@ -253,3 +253,22 @@ export interface DirectionSubsidyPlan {
   created_at: string
   updated_at: string
 }
+
+// Реквизиты решения ГРБС по направлению на год — одно решение действует на все проекты
+// этого направления в этом году (подтверждено сверкой уже внесённых договоров). Источник
+// автоподстановки subsidy_* полей при заведении нового договора — см.
+// app/api/projects/[id]/contracts/route.ts.
+export interface DirectionGrbsDecision {
+  id: string
+  tech_direction: string
+  year: number
+  subsidy_ministry: string
+  subsidy_agreement_number: string
+  subsidy_agreement_date: string | null
+  subsidy_decision_number: string
+  subsidy_decision_date: string | null
+  subsidy_identifier: string
+  updated_by: string | null
+  created_at: string
+  updated_at: string
+}

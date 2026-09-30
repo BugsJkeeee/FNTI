@@ -16,6 +16,41 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   const supabase = await createClient()
+
+  // Автоподстановка реквизитов ГРБС по направлению проекта — одно решение действует на
+  // все проекты направления в этом году (см. direction_grbs_decisions на Глоссарии).
+  // Молча пропускаем, если для этого направления/года решение ещё не занесено — сотрудник
+  // впишет вручную, когда появится.
+  let grbs: Partial<{
+    subsidy_ministry: string
+    subsidy_agreement_number: string
+    subsidy_agreement_date: string | null
+    subsidy_decision_number: string
+    subsidy_decision_date: string | null
+    subsidy_identifier: string
+  }> = {}
+  if (body.contract_year) {
+    const { data: project } = await supabase.from('projects').select('tech_direction').eq('id', id).single()
+    if (project?.tech_direction) {
+      const { data: decision } = await supabase
+        .from('direction_grbs_decisions')
+        .select('*')
+        .eq('tech_direction', project.tech_direction)
+        .eq('year', body.contract_year)
+        .maybeSingle()
+      if (decision) {
+        grbs = {
+          subsidy_ministry: decision.subsidy_ministry,
+          subsidy_agreement_number: decision.subsidy_agreement_number,
+          subsidy_agreement_date: decision.subsidy_agreement_date,
+          subsidy_decision_number: decision.subsidy_decision_number,
+          subsidy_decision_date: decision.subsidy_decision_date,
+          subsidy_identifier: decision.subsidy_identifier,
+        }
+      }
+    }
+  }
+
   const { data, error } = await supabase
     .from('project_contracts')
     .insert({
@@ -25,6 +60,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       contract_year: body.contract_year || null,
       stage_number: body.stage_number || null,
       akr: body.akr ?? '',
+      ...grbs,
     })
     .select()
     .single()

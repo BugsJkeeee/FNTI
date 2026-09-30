@@ -93,14 +93,8 @@ export default function DirectionSubsidyPlans({
   }
 
   return (
-    <div className="rounded-2xl border border-line bg-white p-5">
-      <h2 className="font-display text-base font-semibold text-ink">План субсидии по направлениям</h2>
-      <p className="mt-0.5 text-sm text-ink-soft">
-        Официальный план по документам на текущий и будущие годы — вручную, для сверки с фактом доведения по проектам.
-        Клик по сумме — редактировать.
-      </p>
-
-      <div className="mt-3 overflow-x-auto">
+    <div>
+      <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-line text-left text-xs text-ink-soft">
