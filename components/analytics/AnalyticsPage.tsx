@@ -11,15 +11,18 @@ import DirectionRemainders from './DirectionRemainders'
 import RiskPanel from './RiskPanel'
 import DirectionYearTable from './DirectionYearTable'
 import ClaimsSummary from './ClaimsSummary'
+import RidAnalytics, { type RidWithProject } from './RidAnalytics'
 
 export default function AnalyticsPage({
   projects,
   payments,
   directionPlans,
+  rids,
 }: {
   projects: ProjectForAnalytics[]
   payments: PaymentWithProject[]
   directionPlans: DirectionSubsidyPlan[]
+  rids: RidWithProject[]
 }) {
   const riskPanelRef = useRef<HTMLDivElement>(null)
   const filters = useAnalyticsFilters(projects)
@@ -65,6 +68,7 @@ export default function AnalyticsPage({
         </div>
       </div>
       <DirectionYearTable byDirection={summary.byDirection} allYears={summary.allYears} />
+      <RidAnalytics rids={rids} includedProjectIds={includedProjectIds} onSelectDirection={filters.direction.setOnly} />
       <ClaimsSummary claims={summary.claims} />
     </div>
   )

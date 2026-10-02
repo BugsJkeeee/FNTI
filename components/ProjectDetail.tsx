@@ -7,6 +7,7 @@ import { isStageClosed } from '@/lib/project-checklist-templates'
 import { trackStatus } from '@/lib/project-status'
 import ProjectChecklist from '@/components/ProjectChecklist'
 import ProjectComments from '@/components/ProjectComments'
+import ProjectRids from '@/components/ProjectRids'
 import StageClaimsList from '@/components/StageClaimInfo'
 import TaskForm from '@/components/TaskForm'
 import TaskCard from '@/components/TaskCard'
@@ -858,7 +859,10 @@ function LegalInfoCard({ project }: { project: Project }) {
       'Протокол объявления отбора',
       project.protocol_announce_number ? `№ ${project.protocol_announce_number} от ${formatDate(project.protocol_announce_date)}` : '',
     ],
-    ['Номер карточки в ЕГИСУ НИОКТР', project.egisu_number],
+    [
+      'Карточка в ЕГИСУ НИОКТР',
+      project.egisu_number ? `№ ${project.egisu_number}${project.egisu_date ? ` от ${formatDate(project.egisu_date)}` : ''}` : '',
+    ],
     ['КБК', project.kbk],
     ['Код по КБК', project.kbk_code],
     ['Код результата', project.result_code],
@@ -1387,6 +1391,7 @@ function SystemInfoSection({
             onSaved={onPaymentSaved}
             onDeleted={onPaymentDeleted}
           />
+          <ProjectRids projectId={projectId} initialRids={project.rids ?? []} />
           <div>
             <h3 className="font-display text-base font-semibold text-ink">Требования о возврате</h3>
             <div className="mt-2 space-y-2">

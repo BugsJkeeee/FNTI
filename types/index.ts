@@ -108,6 +108,7 @@ export interface Project {
   protocol_announce_number: string
   protocol_announce_date: string | null
   egisu_number: string
+  egisu_date: string | null
   kbk: string
   kbk_code: string
   result_name: string
@@ -134,6 +135,7 @@ export interface Project {
   stages?: ProjectStage[]
   comments?: ProjectComment[]
   payments?: ProjectPayment[]
+  rids?: ProjectRid[]
   comment_count?: number
   has_unread_comment?: boolean
 }
@@ -269,6 +271,27 @@ export interface DirectionGrbsDecision {
   subsidy_decision_date: string | null
   subsidy_identifier: string
   updated_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+// Результат интеллектуальной деятельности (выгрузка «Реестр РИД» из НИОКР БАС). Вид, номера и
+// даты — как в реестре; «заявка» отличается от оформленного РИД по виду («Заявка на …»).
+export interface ProjectRid {
+  id: string
+  project_id: string
+  kind: string
+  title: string
+  application_number: string
+  application_date: string | null
+  document_number: string
+  action_status: string
+  egisu_created_number: string
+  egisu_created_date: string | null
+  egisu_protection_number: string
+  egisu_protection_date: string | null
+  egisu_usage_number: string
+  egisu_usage_date: string | null
   created_at: string
   updated_at: string
 }

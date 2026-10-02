@@ -3,6 +3,7 @@ import AnalyticsPageClient from '@/components/analytics/AnalyticsPage'
 import type { DirectionSubsidyPlan } from '@/types'
 import type { PaymentWithProject } from '@/lib/project-finance'
 import type { ProjectForAnalytics } from '@/lib/project-risk'
+import type { RidWithProject } from '@/components/analytics/RidAnalytics'
 
 export default async function AnalyticsPage() {
   const supabase = await createClient()
@@ -23,14 +24,19 @@ export default async function AnalyticsPage() {
     .order('tech_direction')
     .order('year')
 
+  const { data: rids } = await supabase
+    .from('project_rids')
+    .select('*, project:projects(id, number, code, wave, tech_direction, status)')
+
   return (
     <div>
       <h1 className="font-display text-xl font-semibold text-ink">Аналитика портфеля</h1>
-      <p className="mt-1 text-sm text-ink-soft">Бюджет по направлениям, освоение и требования о возврате.</p>
+      <p className="mt-1 text-sm text-ink-soft">Бюджет по направлениям, освоение, требования о возврате и РИД.</p>
       <AnalyticsPageClient
         projects={(projects as ProjectForAnalytics[]) ?? []}
         payments={(payments as PaymentWithProject[]) ?? []}
         directionPlans={(directionPlans as DirectionSubsidyPlan[]) ?? []}
+        rids={(rids as RidWithProject[]) ?? []}
       />
     </div>
   )
