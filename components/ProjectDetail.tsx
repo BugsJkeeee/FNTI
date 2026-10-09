@@ -1310,6 +1310,17 @@ function GrbsCard({ contracts }: { contracts: ProjectContract[] }) {
   )
 }
 
+// Текст в файле ТЗ размечен markdown'ом (**жирный**) — показываем жирным, а не со звёздочками.
+function BoldMarkup({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(/(\*\*[^*]+\*\*)/).map((part, i) =>
+        part.startsWith('**') && part.endsWith('**') && part.length > 4 ? <strong key={i}>{part.slice(2, -2)}</strong> : part
+      )}
+    </>
+  )
+}
+
 function TzSummaryCard({ summary }: { summary: ProjectTzSummary }) {
   const [open, setOpen] = useState(false)
   const rows: [string, string][] = [
@@ -1326,13 +1337,17 @@ function TzSummaryCard({ summary }: { summary: ProjectTzSummary }) {
       </button>
       {open && (
         <div className="mt-2 space-y-3 border-t border-line pt-2 text-xs leading-relaxed text-ink">
-          <p className="whitespace-pre-line">{summary.about}</p>
+          <p className="whitespace-pre-line">
+            <BoldMarkup text={summary.about} />
+          </p>
           {rows
             .filter(([, value]) => value)
             .map(([label, value]) => (
               <div key={label}>
                 <div className="mb-0.5 font-semibold">{label}</div>
-                <div className="whitespace-pre-line">{value}</div>
+                <div className="whitespace-pre-line">
+                  <BoldMarkup text={value} />
+                </div>
               </div>
             ))}
         </div>

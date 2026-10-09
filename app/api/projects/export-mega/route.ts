@@ -31,6 +31,19 @@ function formatAdditionalAgreements(list: { number: string; date: string | null 
   return (list ?? []).map((a) => `№ ${a.number} от ${formatDate(a.date)}`).join('\n')
 }
 
+// Весь раздел «Описание проекта» одной ячейкой: описание + заголовки разделов + их текст.
+// Лимит ячейки Excel — 32767 символов, обрезаем с запасом.
+function projectDescriptionText(summary: Project['tz_summary']) {
+  if (!summary) return ''
+  const blocks = [
+    summary.about,
+    summary.goal && `Цель по ТЗ\n${summary.goal}`,
+    summary.results && `Результат\n${summary.results}`,
+    summary.stages && `Этапы\n${summary.stages.replace(/\n{2,}/g, '\n')}`,
+  ].filter(Boolean)
+  return blocks.join('\n\n').replace(/\*\*/g, '').slice(0, 32000)
+}
+
 function latestComment(comments: ProjectComment[] | undefined) {
   const c = [...(comments ?? [])].sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
   return c ? `«${c.text}» — ${c.author?.name ?? ''}` : ''
@@ -147,6 +160,7 @@ export async function GET() {
       'Статус технической приёмки': techStatus.text,
       'Статус финансовой приёмки': finStatus.text,
       'Мнение Фонда НТИ (последнее)': latestComment(p.comments),
+      'Описание проекта': projectDescriptionText(p.tz_summary),
       'Сумма гранта из сводной': grantTotal || '',
       'Обязательства 2024': obligationByYear[2024] || '',
       'Оплачено 2024': paidByYear[2024] || '',
