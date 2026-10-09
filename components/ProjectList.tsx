@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import type { Project } from '@/types'
 import { currentStageOf, trackStatus } from '@/lib/project-status'
+import { isStageClosed } from '@/lib/project-checklist-templates'
 import HighlightMatch from '@/components/HighlightMatch'
 import ReconcileMegaButton from '@/components/ReconcileMegaButton'
 
@@ -163,7 +164,8 @@ function ProjectRow({ project, displayNumber, highlightQuery }: { project: Proje
   const fin = trackStatus(stage, 'financial')
   const comment = latestComment(project)
   const stages = project.stages ?? []
-  const dormant = stages.length > 0 && tech.planned && fin.planned
+  const allClosed = stages.length > 0 && stages.every((s) => isStageClosed(s.checklist_items ?? []))
+  const dormant = stages.length > 0 && ((tech.planned && fin.planned) || allClosed)
 
   // Поиск также ищет по теме и полному наименованию исполнителя, но они не показаны в строке —
   // если совпадение только там, подсказываем, где именно нашлось, иначе непонятно, почему проект в выдаче.
