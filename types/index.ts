@@ -82,6 +82,13 @@ export interface AiSuggestion {
 
 export type ChecklistTrack = 'technical' | 'financial'
 
+export interface ProjectTzSummary {
+  about: string
+  goal: string
+  results: string
+  stages: string
+}
+
 export interface Project {
   id: string
   number: number
@@ -131,6 +138,7 @@ export interface Project {
   financial_expertise_comment: string
   executor_state: string
   source_note: string
+  tz_summary?: ProjectTzSummary | null
   contracts?: ProjectContract[]
   stages?: ProjectStage[]
   comments?: ProjectComment[]

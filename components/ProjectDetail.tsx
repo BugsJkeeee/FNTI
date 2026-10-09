@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import type { Employee, Project, ProjectChecklistItem, ProjectClaim, ProjectContract, ProjectPayment, ProjectStage, Task } from '@/types'
+import type { Employee, Project, ProjectChecklistItem, ProjectClaim, ProjectContract, ProjectPayment, ProjectStage, ProjectTzSummary, Task } from '@/types'
 import { isStageClosed } from '@/lib/project-checklist-templates'
 import { trackStatus } from '@/lib/project-status'
 import ProjectChecklist from '@/components/ProjectChecklist'
@@ -1310,6 +1310,37 @@ function GrbsCard({ contracts }: { contracts: ProjectContract[] }) {
   )
 }
 
+function TzSummaryCard({ summary }: { summary: ProjectTzSummary }) {
+  const [open, setOpen] = useState(false)
+  const rows: [string, string][] = [
+    ['Цель по ТЗ', summary.goal],
+    ['Результат', summary.results],
+    ['Этапы', summary.stages],
+  ]
+
+  return (
+    <section className="rounded-xl border border-line bg-white px-4 py-2">
+      <button type="button" onClick={() => setOpen((v) => !v)} className="flex w-full items-center justify-between gap-3 text-left">
+        <h2 className="font-display text-sm font-semibold text-ink">Описание проекта</h2>
+        <span className="shrink-0 text-xs text-teal">{open ? 'Свернуть' : 'Развернуть'}</span>
+      </button>
+      {open && (
+        <div className="mt-2 space-y-3 border-t border-line pt-2 text-xs leading-relaxed text-ink">
+          <p className="whitespace-pre-line">{summary.about}</p>
+          {rows
+            .filter(([, value]) => value)
+            .map(([label, value]) => (
+              <div key={label}>
+                <div className="mb-0.5 font-semibold">{label}</div>
+                <div className="whitespace-pre-line">{value}</div>
+              </div>
+            ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
 function DataNotesCard({ project }: { project: Project }) {
   const fields = fieldList([
     ['Качество данных', project.data_quality_comment],
@@ -1595,6 +1626,8 @@ export default function ProjectDetail({
   return (
     <div className="space-y-4">
       <ProjectHeader project={project} isOwner={currentEmployee.is_owner} onSaved={(patch) => setProject((p) => ({ ...p, ...patch }))} />
+
+      {project.tz_summary && <TzSummaryCard summary={project.tz_summary} />}
 
       <section>
         <h2 className="mb-2 font-display text-base font-semibold text-ink">Этапы</h2>
