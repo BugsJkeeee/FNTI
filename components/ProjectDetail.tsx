@@ -1315,7 +1315,7 @@ function TzSummaryCard({ summary }: { summary: ProjectTzSummary }) {
   const rows: [string, string][] = [
     ['Цель по ТЗ', summary.goal],
     ['Результат', summary.results],
-    ['Этапы', summary.stages],
+    ['Этапы', summary.stages.replace(/\n{2,}/g, '\n')],
   ]
 
   return (
