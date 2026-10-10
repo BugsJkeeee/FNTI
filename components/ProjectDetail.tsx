@@ -69,6 +69,8 @@ function ProjectHeader({ project, isOwner, onSaved }: { project: Project; isOwne
     ...Object.fromEntries(HEADER_FIELDS.map((f) => [f.key, project[f.key] ?? ''])),
     protocol_number: project.protocol_number ?? '',
     protocol_date: project.protocol_date ?? '',
+    rid_agreement_number: project.rid_agreement_number ?? '',
+    rid_agreement_date: project.rid_agreement_date ?? '',
     status: project.status,
   }))
   const [saving, setSaving] = useState(false)
@@ -183,6 +185,23 @@ function ProjectHeader({ project, isOwner, onSaved }: { project: Project; isOwne
             type="date"
             value={values.protocol_date}
             onChange={(e) => setValues((v) => ({ ...v, protocol_date: e.target.value }))}
+            className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm outline-none focus:border-teal"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-ink-soft">Соглашение РИД: номер</label>
+          <input
+            value={values.rid_agreement_number}
+            onChange={(e) => setValues((v) => ({ ...v, rid_agreement_number: e.target.value }))}
+            className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm outline-none focus:border-teal"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-ink-soft">Соглашение РИД: дата</label>
+          <input
+            type="date"
+            value={values.rid_agreement_date}
+            onChange={(e) => setValues((v) => ({ ...v, rid_agreement_date: e.target.value }))}
             className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm outline-none focus:border-teal"
           />
         </div>
@@ -862,6 +881,12 @@ function LegalInfoCard({ project }: { project: Project }) {
     [
       'Карточка в ЕГИСУ НИОКТР',
       project.egisu_number ? `№ ${project.egisu_number}${project.egisu_date ? ` от ${formatDate(project.egisu_date)}` : ''}` : '',
+    ],
+    [
+      'Соглашение РИД',
+      project.rid_agreement_number
+        ? `№ ${project.rid_agreement_number}${project.rid_agreement_date ? ` от ${formatDate(project.rid_agreement_date)}` : ''}`
+        : '',
     ],
     ['КБК', project.kbk],
     ['Код по КБК', project.kbk_code],

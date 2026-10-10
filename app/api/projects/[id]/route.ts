@@ -14,8 +14,12 @@ const HEADER_FIELDS = [
   'executor_address',
   'protocol_number',
   'protocol_date',
+  'rid_agreement_number',
+  'rid_agreement_date',
   'status',
 ] as const
+
+const NULLABLE_WHEN_EMPTY = new Set<string>(['rid_agreement_number', 'rid_agreement_date'])
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -25,7 +29,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const body = await req.json()
   const updates: Record<string, unknown> = {}
   for (const key of HEADER_FIELDS) {
-    if (key in body) updates[key] = body[key]
+    if (key in body) updates[key] = NULLABLE_WHEN_EMPTY.has(key) ? body[key] || null : body[key]
   }
 
   if (Object.keys(updates).length === 0) {

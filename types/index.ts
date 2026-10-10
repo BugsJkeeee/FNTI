@@ -139,6 +139,8 @@ export interface Project {
   executor_state: string
   source_note: string
   tz_summary?: ProjectTzSummary | null
+  rid_agreement_number?: string | null
+  rid_agreement_date?: string | null
   contracts?: ProjectContract[]
   stages?: ProjectStage[]
   comments?: ProjectComment[]

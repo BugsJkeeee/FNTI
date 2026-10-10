@@ -138,6 +138,8 @@ export async function GET() {
       'Код результата': p.result_code,
       'ОБЩИЙ Комментарий по датам': '',
       'Номер карточки проекта в ЕГИСУ НИОКТР': p.egisu_number,
+      'Номер соглашения РИД': p.rid_agreement_number ?? '',
+      'Дата соглашения РИД': formatDate(p.rid_agreement_date),
       'Номер грантового договора 2024 года': c2024?.contract_number ?? '',
       'Дата грантового договора 2024 года': formatDate(c2024?.contract_date),
       'Номер счёта 2024 года': c2024?.invoice_number ?? '',
