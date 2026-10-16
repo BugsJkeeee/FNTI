@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./q.sh *)",
+      "mcp__plugin_telegram_telegram"
+    ],
+    "deny": [
+      "Edit",
+      "Write",
+      "NotebookEdit",
+      "WebFetch",
+      "WebSearch",
+      "Read(~/.config/**)",
+      "Read(~/.claude/channels/**)",
+      "Read(~/.ssh/**)",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "Bash(cat ~/*)",
+      "Bash(env)",
+      "Bash(printenv *)"
+    ]
+  }
+}
