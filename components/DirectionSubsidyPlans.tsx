@@ -8,7 +8,7 @@ import type { DirectionSubsidyPlan } from '@/types'
 const DEFAULT_YEARS = [2026, 2027, 2028]
 
 function formatRub(n: number) {
-  return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 }).format(n) + ' ₽'
+  return new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) + ' ₽'
 }
 
 function EditableCell({ amount, onSave }: { amount: number | null; onSave: (amount: number) => Promise<void> }) {

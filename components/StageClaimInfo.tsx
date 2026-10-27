@@ -5,7 +5,7 @@ import type { ProjectClaim } from '@/types'
 
 function formatRub(n: number | null) {
   if (n === null) return '—'
-  return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 }).format(n) + ' ₽'
+  return new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) + ' ₽'
 }
 
 function formatDate(d: string | null) {
