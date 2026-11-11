@@ -34,6 +34,19 @@ export default async function GlossaryPage() {
     a.localeCompare(b, 'ru')
   )
 
+  // Факт доведения — тот же расчёт, что в аналитике (lib/project-finance.ts): доведённые
+  // платежи по году плана, сгруппированные по направлению проекта.
+  const { data: paidData } = await supabase
+    .from('project_payments')
+    .select('plan_year, paid_amount, project:projects(tech_direction)')
+    .eq('actually_paid', true)
+  const released: Record<string, number> = {}
+  ;((paidData ?? []) as unknown as { plan_year: number | null; paid_amount: number | null; project: { tech_direction: string } | null }[]).forEach((p) => {
+    if (!p.plan_year || !p.project?.tech_direction) return
+    const key = `${p.project.tech_direction}|${p.plan_year}`
+    released[key] = (released[key] ?? 0) + (Number(p.paid_amount) || 0)
+  })
+
   const { data: grbsData } = await supabase
     .from('direction_grbs_decisions')
     .select('*')
@@ -54,9 +67,9 @@ export default async function GlossaryPage() {
 
       <CollapsibleSection
         title="Финансы"
-        description="План субсидии по направлениям на текущий и будущие годы — для сверки с фактом доведения по проектам."
+        description="План субсидии по направлениям и факт доведения по проектам (из платежей). План редактируется щелчком по сумме."
       >
-        <DirectionSubsidyPlans plans={subsidyPlans} directions={directions} />
+        <DirectionSubsidyPlans plans={subsidyPlans} directions={directions} released={released} />
       </CollapsibleSection>
 
       <CollapsibleSection
