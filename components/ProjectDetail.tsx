@@ -1129,7 +1129,8 @@ function AddPaymentForm({
   onAdded: (p: ProjectPayment) => void
 }) {
   const [adding, setAdding] = useState(false)
-  const [contractNumber, setContractNumber] = useState(contracts[0]?.contract_number ?? '')
+  // По умолчанию — самый новый договор (последний в списке): новые платежи идут по нему.
+  const [contractNumber, setContractNumber] = useState(contracts.at(-1)?.contract_number ?? '')
   const [amount, setAmount] = useState('')
   const [date, setDate] = useState('')
   const [saving, setSaving] = useState(false)
@@ -1244,6 +1245,10 @@ function FinancingCard({
     const bPaid = Number(b.paid_amount) > 0 ? 0 : 1
     return aPaid - bPaid
   })
+  // В выпадающих списках договоров — от старых к новым (как в блоке «Договоры»).
+  const sortedContracts = [...contracts].sort((a, b) =>
+    (a.contract_date ?? '9999-99-99').localeCompare(b.contract_date ?? '9999-99-99')
+  )
 
   return (
     <div>
@@ -1265,7 +1270,7 @@ function FinancingCard({
             </thead>
             <tbody>
               {sortedPayments.map((p) => (
-                <PaymentRow key={p.id} projectId={projectId} payment={p} contracts={contracts} onSaved={onSaved} onDeleted={onDeleted} />
+                <PaymentRow key={p.id} projectId={projectId} payment={p} contracts={sortedContracts} onSaved={onSaved} onDeleted={onDeleted} />
               ))}
               <tr className="border-t border-line font-semibold text-ink">
                 <td className="py-1 pr-6" colSpan={2}>Итого</td>
@@ -1277,7 +1282,7 @@ function FinancingCard({
           </table>
         </div>
       )}
-      <AddPaymentForm projectId={projectId} contracts={contracts} onAdded={onAdded} />
+      <AddPaymentForm projectId={projectId} contracts={sortedContracts} onAdded={onAdded} />
     </div>
   )
 }
