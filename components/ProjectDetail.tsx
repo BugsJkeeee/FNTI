@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { Employee, Project, ProjectChecklistItem, ProjectClaim, ProjectContract, ProjectPayment, ProjectStage, ProjectTzSummary, Task } from '@/types'
 import { isStageClosed } from '@/lib/project-checklist-templates'
@@ -111,6 +112,14 @@ function ProjectHeader({ project, isOwner, onSaved }: { project: Project; isOwne
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            {project.feo && (
+              <Link
+                href={`/projects/${project.id}/feo`}
+                className="rounded-md border border-teal px-3 py-1.5 text-sm text-teal transition hover:bg-teal-soft"
+              >
+                ФЭО
+              </Link>
+            )}
             <button
               onClick={() => setEditing(true)}
               className="rounded-md border border-line px-3 py-1.5 text-sm text-ink-soft transition hover:border-teal hover:text-teal"

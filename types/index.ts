@@ -146,6 +146,8 @@ export interface Project {
   comments?: ProjectComment[]
   payments?: ProjectPayment[]
   rids?: ProjectRid[]
+  // feo_documents.project_id уникален → PostgREST отдаёт объект (или null), а не массив
+  feo?: { id: string } | null
   comment_count?: number
   has_unread_comment?: boolean
 }
@@ -304,4 +306,70 @@ export interface ProjectRid {
   egisu_usage_date: string | null
   created_at: string
   updated_at: string
+}
+
+// ФЭО проекта (финансово-экономическое обоснование) — загружается scripts/import-feo.mjs,
+// см. supabase-schema-feo.sql. Листы хранятся «очищенными» для показа как в Excel.
+export interface FeoDocument {
+  id: string
+  project_id: string
+  template: '2024' | '2025'
+  file_name: string
+  source_path: string
+  file_modified_at: string | null
+  info: { label: string; value: string }[]
+  checks: { level: 'warn' | 'info'; text: string }[]
+  loaded_at: string
+}
+
+export interface FeoSheet {
+  id: string
+  document_id: string
+  sort: number
+  name: string
+  caption: string
+  cols: { w: number; num?: boolean }[]
+  header: { t: string; cs?: number; rs?: number }[][]
+  rows: { c: (string | number | null)[]; b?: boolean; l?: number }[]
+}
+
+export interface FeoPlanItem {
+  id: string
+  document_id: string
+  sort: number
+  code: string
+  level: number
+  name: string
+  content: string
+  results: string
+  executor: string
+  start_date: string | null
+  end_date: string | null
+}
+
+export interface FeoExpense {
+  id: string
+  document_id: string
+  sort: number
+  code: string
+  name: string
+  unit: string
+  amounts: Record<string, number>
+  total: number | null
+}
+
+export interface FeoPurchase {
+  id: string
+  document_id: string
+  sort: number
+  sheet: string
+  category: string
+  object_type: string
+  substage_code: string
+  name: string
+  purpose: string
+  unit: string
+  amounts: Record<string, number>
+  total: number | null
+  justification: string
 }
